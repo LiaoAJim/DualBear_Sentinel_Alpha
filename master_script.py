@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 
 # --- [關鍵修復]：從 core 模組導入所有需要的特工與腦部 ---
 from core.analyzer import SentimentAnalyzer
-from core.scout import PttStockScout # 導入 PTT 特工
+from core.scout import PttStockScout # 修正導入路徑
 from core.anue_scout import AnueScout # 導入 鉅亨特工
 from core.sentinel import SentinelAlpha # 導入 哨兵策略精算師 (L11)
 
@@ -83,9 +83,7 @@ def main():
     print("📡 正在部署情報網：鉅亨網 & PTT Stock...")
     
     try:
-        # 動態導入以提高雲端執行的健壯性
-        from core.anue_scout import AnueScout
-        from core.ptt_scout import PttStockScout
+        # ✅ 使用最上方已經正確導入的類別，移除錯誤的動態導入
         scouts = [AnueScout(), PttStockScout()]
         
         all_intelligence = []

@@ -2,11 +2,11 @@ import os, json, requests
 import time # 🚀 新增這一行：導入 time 模組！
 import google.generativeai as genai # 導入新的 SDK
 
-class SentimentEngine:
+class SentimentAnalyzer:
     def __init__(self, api_key):
         # 1. 初始化 Google AI Studio
         genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel('gemini-2.5-flash')
+        self.model = genai.GenerativeModel('gemini-1.5-flash') # 修正為現有模型名稱
 
     def analyze(self, title):
         # 2. 修改 Prompt (這可能需要根據 Gemini 的特性微調)
