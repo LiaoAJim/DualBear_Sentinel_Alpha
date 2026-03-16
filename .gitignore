@@ -1,0 +1,17 @@
+# 🔒 私人金鑰與設定
+.env
+
+# 📦 Python 暫存檔
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+env/
+venv/
+
+# 🗄️ 資料庫檔案 (如果你不希望雲端跟本地同步資料庫)
+*.db
+
+# 📔 IDE 設定
+.vscode/
+.idea/

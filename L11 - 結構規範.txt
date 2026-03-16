@@ -1,0 +1,15 @@
+DualBear_Sentinel_Alpha/
+├── .github/
+│   └── workflows/
+│       └── daily_recon.yml    # 雲端自動化排程
+├── core/
+│   ├── crawler.py             # 多來源爬蟲模組 (PTT, Anue)
+│   ├── analyzer.py            # AI 語意與酸民判讀引擎
+│   └── calculator.py          # 多因子加權與信號生成器
+├── data/
+│   └── market_intelligence.db # 你的數位資產金庫 (SQLite)
+├── web/
+│   └── dashboard.py           # Streamlit 視覺化指揮中心
+├── master_script.py           # 全系統自動化中樞
+├── requirements.txt           # 必要套件清單
+└── README.md                  # 你的戰略手冊
