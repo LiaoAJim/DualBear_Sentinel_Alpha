@@ -39,4 +39,4 @@
 本工具僅供策略研究使用，不構成任何投資建議。市場有風險，投資需謹慎。請記住：**AI 測量溫度，而你決定何時扣下板機。**
 
 ---
-© 2026 Crafted with Gemini Opal Framework.
+© 2026 Crafted with Gemini Opal Framework."# DualBear_Sentinel_Alpha" 
