@@ -6,11 +6,11 @@ from core.calculator import StrategyCalculator
 
 # 載入 .env 檔案中的環境變數
 load_dotenv()
-API_KEY = os.getenv("OPENAI_API_KEY")
+API_KEY = os.getenv("GOOGLE_API_KEY") # 改讀 Google Key
 
 def main():
-    if not API_KEY or API_KEY == "your_openai_api_key_here":
-        print("❌ 錯誤：請在 .env 檔案中填入正確的 OPENAI_API_KEY。")
+    if not API_KEY or API_KEY == "your_gemini_api_key_...xxxx":
+        print("❌ 錯誤：請在 .env 檔案中填入正確的 GOOGLE_API_KEY。")
         return
         
     scout = DataScout()
