@@ -26,7 +26,7 @@ jobs:
       - name: 🐍 正在初始化 Python 環境...
         uses: actions/setup-python@v5
         with:
-          python-python-version: '3.12' # 使用與您本地相近的 Python 版本
+          python-python: '3.12' # 使用與您本地相近的 Python 版本
 
       # 5. 步驟三：安裝專案依賴套件 (這一步非常關鍵！)
       - name: 📦 正在安裝戰略依賴套件 (安裝 google-generativeai)...
