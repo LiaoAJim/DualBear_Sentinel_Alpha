@@ -20,11 +20,11 @@ jobs:
     steps:
       # 3. 步驟一：拉取（Checkout）您的程式碼
       - name: 🚀 正在部署程式碼到雲端基地...
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       # 4. 步驟二：安裝 Python 環境
       - name: 🐍 正在初始化 Python 環境...
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12' # 使用與您本地相近的 Python 版本
 
