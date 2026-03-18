@@ -29,13 +29,26 @@ class PttStockScout:
 
         print(f"📡 PTT 偵察員：開始偵察 PTT Stock 板 (預計抓取 {pages} 頁)...")
 
+        import time
         for page in range(pages):
-            try:
-                response = requests.get(current_url, cookies=self.cookies, headers=self.headers, timeout=10)
-                if response.status_code != 200:
-                    print(f"⚠️ 偵察失敗：無法存取 PTT (狀態碼: {response.status_code})")
-                    break
+            max_retries = 3
+            response = None
+            for retry in range(max_retries):
+                try:
+                    response = requests.get(current_url, cookies=self.cookies, headers=self.headers, timeout=15)
+                    if response.status_code == 200:
+                        break
+                    print(f"⚠️ PTT 頁面存取異常 (狀態碼: {response.status_code})，第 {retry+1} 次重試...")
+                except Exception as e:
+                    print(f"⚠️ PTT 連線異常 ({e})，第 {retry+1} 次重試...")
                 
+                if retry < max_retries - 1:
+                    time.sleep(5)
+                else:
+                    print("❌ PTT 偵察失敗：已達最大重試次數。")
+                    return recon_results
+            
+            try:
                 soup = BeautifulSoup(response.text, 'lxml')
                 
                 # --- 1. 抓取文章列表 ---

@@ -38,13 +38,15 @@ class AnueScout:
             soup = BeautifulSoup(response.text, 'lxml')
 
             # --- 1. 尋找新聞列表容器 ---
-            # 鉅亨網的網頁結構經常變動，這裡使用一個較為robust的屬性選擇器
-            # 我們尋找包含新聞連結的特定 <a> 標籤
-            # 注意：這裡使用了一個常見的 class 名稱作為範例，若網頁結構改變需更新
-            news_items = soup.select('a[class*="_1ZPy"]') 
+            # 更新選擇器：鉅亨網新聞連結現在主要以 /news/id/ 開頭
+            news_items = soup.select('a[href^="/news/id/"]') 
 
             if not news_items:
-                print("⚠️ 警告：無法在頁面上找到新聞項目。這通常意味著鉅亨網修改了網頁結構 (CSS Selector 需更新)。")
+                # 嘗試備用選擇器
+                news_items = soup.find_all('a', href=lambda x: x and '/news/id/' in x)
+
+            if not news_items:
+                print("⚠️ 警告：無法在頁面上找到新聞項目。這通常意味著鉅亨網修改了網頁結構。")
                 return []
 
             count = 0

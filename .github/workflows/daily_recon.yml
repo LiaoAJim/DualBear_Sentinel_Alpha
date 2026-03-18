@@ -20,13 +20,13 @@ jobs:
     steps:
       # 3. 步驟一：拉取（Checkout）您的程式碼
       - name: 🚀 正在部署程式碼到雲端基地...
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       # 4. 步驟二：安裝 Python 環境
       - name: 🐍 正在初始化 Python 環境...
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
-          python-python-version: '3.12' # 使用與您本地相近的 Python 版本
+          python-version: '3.12' # 使用與您本地相近的 Python 版本
 
       # 5. 步驟三：安裝專案依賴套件 (這一步非常關鍵！)
       - name: 📦 正在安裝戰略依賴套件 (安裝 google-generativeai)...

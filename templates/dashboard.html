@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>雙熊哨兵戰略儀表板 | DualBear Sentinel</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <i class="fas fa-shield-halved" style="color: var(--accent-blue); margin-right: 10px;"></i>
+            雙熊哨兵戰略系統 <span style="font-weight: 400; font-size: 14px; opacity: 0.6;">旗艦版 v1.0</span>
+        </div>
+        <div class="header-right">
+            <div class="system-controls">
+                <button id="btn-run" class="run-btn"><i class="fas fa-play"></i> 立即執行</button>
+                <button id="btn-history" class="header-btn"><i class="fas fa-history"></i> 歷史檔案</button>
+                <div id="conn-status" class="status-indicator">
+                    <span class="dot"></span>
+                    <span class="status-text">斷開連線</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="system-stepper" id="system-stepper">
+        <div class="step active" id="step-idle">
+            <div class="step-icon"><i class="fas fa-power-off"></i></div>
+            <div class="step-label">等待啟動</div>
+        </div>
+        <div class="step-line"></div>
+        <div class="step" id="step-scouting">
+            <div class="step-icon"><i class="fas fa-satellite-dish"></i></div>
+            <div class="step-label">情報偵察</div>
+        </div>
+        <div class="step-line"></div>
+        <div class="step" id="step-analyzing">
+            <div class="step-icon"><i class="fas fa-brain"></i></div>
+            <div class="step-label">AI 解析</div>
+        </div>
+        <div class="step-line"></div>
+        <div class="step" id="step-reporting">
+            <div class="step-icon"><i class="fas fa-paper-plane"></i></div>
+            <div class="step-label">戰略通報</div>
+        </div>
+    </div>
+
+    <main>
+        <!-- 左側情報牆 -->
+        <section class="panel">
+            <div class="panel-header">
+                <h2 class="panel-title"><i class="fas fa-broadcast-tower"></i> 實時偵察情報網</h2>
+                <span id="news-count" class="count-badge">0 則偵察</span>
+            </div>
+
+            <div class="main-content">
+                <div class="feed-content" id="intelligence-feed">
+                    <!-- 情報項目將由 JS 注入 -->
+                    <div class="empty-state">
+                        <i class="fas fa-search"></i>
+                        <p>等待偵察數據導入...</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 中間情緒核心 -->
+        <section class="panel">
+            <div class="panel-header">
+                <h2 class="panel-title"><i class="fas fa-microchip"></i> AI 情緒核心</h2>
+            </div>
+            <div class="sentiment-display">
+                <div class="gauge-container">
+                    <svg width="240" height="240" viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="45" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="6"/>
+                        <circle id="gauge-progress" cx="50" cy="50" r="45" fill="none" 
+                                stroke="url(#gauge-gradient)" stroke-width="6" 
+                                stroke-dasharray="282.7" stroke-dashoffset="282.7"
+                                transform="rotate(-90 50 50)"/>
+                        <defs>
+                            <linearGradient id="gauge-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" style="stop-color:var(--accent-pink);stop-opacity:1" />
+                                <stop offset="50%" style="stop-color:var(--accent-purple);stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:var(--accent-blue);stop-opacity:1" />
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                    <div class="gauge-score">
+                        <div class="score-value" id="current-score">0.00</div>
+                        <div class="score-label" id="sentiment-flavor">中性</div>
+                    </div>
+                </div>
+                
+                <div id="ai-thought" class="ai-thought-bubble">
+                    等待數據導入，準備點火分析儀...
+                </div>
+            </div>
+            
+            <div class="log-panel">
+                <div class="log-header">
+                    <span><i class="fas fa-terminal"></i> 系統監控日誌</span>
+                    <button id="clear-logs" class="clear-btn">清除</button>
+                </div>
+                <div class="log-content" id="system-logs">
+                    <!-- 日誌將在此顯示 -->
+                    <div class="log-entry system">系統就緒，等待連線...</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 右側戰略決策 -->
+        <section class="panel">
+            <div class="panel-header">
+                <h2 class="panel-title"><i class="fas fa-chess-knight"></i> 哨兵決策判斷</h2>
+            </div>
+            
+            <div class="decision-card">
+                <div class="decision-label">建議操作</div>
+                <div class="decision-action" id="decision-action">觀望</div>
+                <div class="decision-divider"></div>
+                <div class="decision-label">建議倉位</div>
+                <div class="decision-value" id="target-position">50%</div>
+            </div>
+
+            <div class="recon-notes-container">
+                <h3 class="notes-title"><i class="fas fa-file-contract"></i> 戰略理由 (Recon Notes)</h3>
+                <p id="decision-notes" class="notes-content">
+                    目前尚無偵察結果，系統持續監控市場脈動中...
+                </p>
+            </div>
+
+            <div class="line-status-box">
+                <div class="status-row">
+                    <span><i class="fab fa-line"></i> LINE 通訊狀態</span>
+                    <span id="line-status" class="status-online">● 同步傳輸中</span>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 歷史查詢抽屜 (全局層級) -->
+    <div id="history-drawer" class="history-drawer">
+        <div class="history-header">
+            <h3 style="margin:0; font-size:18px; color:#fff;"><i class="fas fa-history"></i> 歷史戰略檔案</h3>
+            <button id="close-history" style="background:transparent; border:none; color:#fff; cursor:pointer;"><i class="fas fa-times"></i></button>
+        </div>
+        <div id="history-list" class="history-list">
+            <!-- 載入日期清單 -->
+            <div class="loading-spinner">載入中...</div>
+        </div>
+    </div>
+
+    <script src="/static/js/dashboard.js"></script>
+</body>
+</html>

@@ -15,23 +15,39 @@ from core.sentinel import SentinelAlpha # 導入 哨兵策略精算師 (L11)
 # (為了讓你能直接執行，我將我們先前設計的 LineNotifier 代碼直接放在這裡，
 # 或者你也可以選擇建立 core/notifier.py 並從那裡 import。)
 class LineNotifier:
-    def __init__(self, token):
+    """
+    雙熊 LINE 通知特工：支援 Messaging API Push 模式。
+    """
+    def __init__(self, token, user_id):
         self.token = token
-        self.api_url = "https://notify-api.line.me/api/notify"
-        self.headers = {"Authorization": "Bearer " + token}
+        self.user_id = user_id
+        self.api_url = "https://api.line.me/v2/bot/message/push"
+        self.headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {token}"
+        }
 
     def send_text(self, message):
-        payload = {"message": message}
+        data = {
+            "to": self.user_id,
+            "messages": [
+                {
+                    "type": "text",
+                    "text": message
+                }
+            ]
+        }
         try:
-            response = requests.post(self.api_url, headers=self.headers, data=payload)
+            response = requests.post(self.api_url, headers=self.headers, data=json.dumps(data))
             if response.status_code == 200:
-                print("✅ LINE Notify 訊息發送成功！")
+                print("✅ LINE 訊息發送成功！")
                 return True
             else:
-                print(f"❌ LINE Notify 訊息發送失敗，狀態碼: {response.status_code}")
+                print(f"❌ LINE 訊息發送失敗，狀態碼: {response.status_code}")
+                print(f"回應內容: {response.text}")
                 return False
         except Exception as e:
-            print(f"❌ 發生錯誤：{e}")
+            print(f"❌ 傳送過程發生錯誤：{e}")
             return False
 
 # --- [優化]：將報告建構函數搬到外部，並優化時間處理 ---
@@ -55,138 +71,195 @@ def construct_report(decision, intelligence_count):
             f"⚠️ 狀態: AI 分析失敗，未能產出決策報告。"
         )
 
-# --- [修復]：定義 get_test_news() 函數作為 fallback ---
+# --- [新增]：儀表板通知器 ---
+class DashboardNotifier:
+    def __init__(self, port=8005):
+        self.url = f"http://localhost:{port}/api/update"
+
+    def notify(self, data_type, content):
+        try:
+            requests.post(self.url, json={"type": data_type, **content}, timeout=1)
+        except:
+            pass # 儀表板未開啟時忽略
+
+    def log(self, message, level="info"):
+        self.notify("log", {"content": message, "level": level})
+
+    def status(self, step):
+        self.notify("status", {"step": step})
+
 def get_test_news():
     """當爬蟲模組失敗時的備用測試數據。返回一個空列表或模擬數據。"""
     print("⚠️ 使用測試數據。")
-    return [] # 或者返回一些模擬數據 [{'source': 'Test', 'title': '台股大漲', 'link': '...'}]
+    return [] 
 
 def main():
-    # 1. 初始化環境與通訊
+    # 1. 載入環境變數：對齊 Messaging API 規格
     load_dotenv()
-    line_token = os.getenv("LINE_NOTIFY_TOKEN")
-    google_api_key = os.getenv("GOOGLE_API_KEY") 
+    line_token = os.getenv("LINE_CHANNEL_ACCESS_TOKEN")
+    user_id = os.getenv("YOUR_USER_ID") # 從 .env 讀取正確的 User ID
+    google_api_key = os.getenv("GOOGLE_API_KEY") # 從 .env 讀取正確的 API Key
+    
+    import argparse
+    parser = argparse.ArgumentParser(description="DualBear Sentinel Alpha")
+    parser.add_argument("--port", type=int, default=8005, help="Dashboard server port")
+    args = parser.parse_args()
 
-    if not line_token:
-        print("❌ 錯誤：找不到 LINE_NOTIFY_TOKEN。")
+    db_notifier = DashboardNotifier(port=args.port) # 初始化儀表板通知器
+    db_notifier.status("idle")
+    db_notifier.log("🚀 DualBear Sentinel Alpha 系統啟動...", "system")
+
+    if not line_token or not user_id:
+        db_notifier.log("找不到 LINE_CHANNEL_ACCESS_TOKEN 或 YOUR_USER_ID", "error")
+        print("❌ 錯誤：找不到 LINE_CHANNEL_ACCESS_TOKEN 或 YOUR_USER_ID。")
         return
     if not google_api_key:
+        db_notifier.log("找不到 GOOGLE_API_KEY", "error")
         print("❌ 錯誤：找不到 GOOGLE_API_KEY。")
         return
 
-    notifier = LineNotifier(line_token)
+    notifier = LineNotifier(line_token, user_id)
     
-    # --- ⚔️ PHASE 2: REAL OPERATIONS ---
+    # --- ⚔️ PHASE: Real Scouting ---
+    db_notifier.status("scouting")
+    db_notifier.log("📡 正在部署情報網：鉅亨網 & PTT Stock...", "scout")
     print("🚀 DualBear Sentinel Alpha 啟動真實偵察任務...")
-
-    # --- Block 1: Real Scouting --- (✅ 部署情報網)
-    print("📡 正在部署情報網：鉅亨網 & PTT Stock...")
     
     try:
-        # ✅ 使用最上方已經正確導入的類別，移除錯誤的動態導入
         scouts = [AnueScout(), PttStockScout()]
         
         all_intelligence = []
         for scout in scouts:
-            # 這裡我們調用標準的抓取方法。
-            # 請確保你的 scouts 方法中已經有 Jade 設計的反 429 配額延遲 (time.sleep)
+            scout_name = scout.__class__.__name__
+            db_notifier.log(f"🕵️ 特工 {scout_name} 開始作業...", "scout")
             try:
-                # 假設方法名稱為 scrape_latest_news 或 scrape_latest_posts
+                intelligence_list = []
                 if hasattr(scout, 'scrape_latest_news'):
-                    all_intelligence.extend(scout.scrape_latest_news(limit=10)) 
+                    intelligence_list = scout.scrape_latest_news(limit=10)
                 elif hasattr(scout, 'scrape_latest_posts'):
-                    all_intelligence.extend(scout.scrape_latest_posts(pages=2, min_pushes=15))
+                    intelligence_list = scout.scrape_latest_posts(pages=2, min_pushes=15)
+                
+                db_notifier.log(f"✅ {scout_name} 蒐集到 {len(intelligence_list)} 則情報", "success")
+                
+                # 即時推送到儀表板
+                for item in intelligence_list:
+                    db_notifier.notify("intelligence", {"content": item})
+                
+                all_intelligence.extend(intelligence_list)
             except Exception as e:
+                db_notifier.log(f"⚠️ {scout_name} 偵察失敗: {str(e)}", "warning")
                 print(f"⚠️ 偵察特工偵察失敗：{e}")
             
         intelligence_count = len(all_intelligence)
+        db_notifier.log(f"📊 總計蒐集到 {intelligence_count} 則市場情報。", "info")
         print(f"✅ 成功蒐集到 {intelligence_count} 則市場情報。")
-    except ImportError:
-        print("⚠️ 警告: 找不到 scout 模組 (AnueScout 或 PttStockScout)。切換到備用數據。")
-        all_intelligence = get_test_news()
-        intelligence_count = len(all_intelligence)
+    except Exception as e:
+        db_notifier.log(f"❌ 偵察階段發生嚴重錯誤: {str(e)}", "error")
+        all_intelligence = []
+        intelligence_count = 0
 
     if not all_intelligence:
-        print("⚠️ 警告: 今日未抓取到任何有效市場情報。")
+        db_notifier.log("今日未抓取到任何有效市場情報，任務終止。", "warning")
+        db_notifier.status("idle")
         notifier.send_text("⚠️ 今日偵察報告: 未抓取到有效情報。請檢查爬蟲模組。")
         return
 
-    # --- Block 2: AI Analysis & Sentinel Decision --- (✅ 整合 AI 情緒與做出決策)
-    print("🧠 正在呼叫 Gemini AI 大腦進行情緒判讀 (腦部對齊：1.5-Flash)...")
+    # --- Block 2: AI Analysis & Sentinel Decision ---
+    db_notifier.status("analyzing")
+    db_notifier.log("🧠 正在呼叫 Gemini AI 大腦進行情緒判讀...", "ai")
     
     try:
-        # 動態導入 SentimentAnalyzer 類別
-        from core.analyzer import SentimentAnalyzer
         analyzer = SentimentAnalyzer(google_api_key)
         
-        # --- [關鍵修復]：在此檔案中實現整合 AI 與決策的邏輯 ---
         total_score = 0
         analyzed_count = 0
         sentiment_flavors = []
 
-        print(f"   開始對 {intelligence_count} 則情報進行情緒判讀...")
         for i, intelligence in enumerate(all_intelligence):
             try:
-                # 這裡調用 analyzer 檔案中定義的 analyse 單點文字的方法
-                # 我們假設 analyser 檔案中定義的方法是 analyse，就像我之前給你的那樣
-                # 這裡接收 intelligence 的標題（或其他欄位），並返回一個 Sentiment 物件或字典
+                # 通知儀表板開始分析
+                db_notifier.notify("analysis_start", {"title": intelligence['title']})
+                db_notifier.log(f"[{i+1}/{intelligence_count}] 分析中: {intelligence['title'][:30]}...", "ai")
+                
                 sentiment = analyzer.analyze(intelligence['title'])
                 
-                # 從 Sentiment 物件或字典中獲取分數和風味
-                # 這裡假設你的 core/analyzer.py 返回的是一個具有 score 和 flavor 屬性的物件，
-                # 或者一個具有 'score' 和 'flavor' 鍵的字典。
-                # 根據你之前的 code，它是一個物件，我們將其視為字典處理 (.get)
-                # (如果你的 core/analyzer.py 是返回物件，請將 .get 修復為對應的屬性存取)
                 if isinstance(sentiment, dict):
-                  score = sentiment.get('score', 0)
-                  flavor = sentiment.get('flavor', '中性')
-                else: # 假設它是一個物件
-                  score = sentiment.score
-                  flavor = sentiment.flavor
+                    score = sentiment.get('score', 0)
+                    flavor = sentiment.get('flavor', '中性')
+                else: 
+                    score = sentiment.score
+                    flavor = sentiment.flavor
 
                 total_score += score
-                sentiment_flavors.append(f"【{intelligence['source']}】{intelligence['title'][:20]}... -> {flavor}")
                 analyzed_count += 1
-                print(f"   - [{i+1}/{intelligence_count}] 情緒分數: {score} ({flavor})")
+                db_notifier.log(f"   ∟ 分數: {score} ({flavor})", "info")
             except Exception as e:
-                print(f"⚠️ 單點分析失敗：{e}")
-                # 這裡不計入平均，因為分析失敗不代表中性
+                db_notifier.log(f"⚠️ 分析失敗: {str(e)}", "warning")
 
-        # 精算最終的情緒分數和風味
+        # 精算最終的情緒分數
         if analyzed_count > 0:
             final_sentiment_score = total_score / analyzed_count
         else:
             final_sentiment_score = 0
         
-        print(f"✅ 最終情緒分數: {final_sentiment_score:.2f}")
+        db_notifier.log(f"✅ AI 集體判讀完成。最終情緒指數: {final_sentiment_score:.2f}", "success")
 
-        # --- [關鍵聯動]：呼叫策略精算師 SentinelAlpha 做出最終持倉決策 (L11) ---
-        print("🛡️ 正在呼叫哨兵精算師計算最終持倉決策...")
+        # --- [關鍵聯動]：策略精算師 ---
+        db_notifier.log("🛡️ 正在計算最終策略佈置...", "system")
         sentinel = SentinelAlpha()
-        # 我們假設 SentinelAlpha 的 calculate_position 接收一個情緒分數，
-        # 並返回一個包含 action (操作) 和 recon_notes (理由) 的字典。
-        # 並且該方法內建了我們之前設計的「情緒到倉位」的精算邏輯。
         decision = sentinel.calculate_position(final_sentiment_score)
         
-        # 將最終情緒分數也加入決策字典中
         decision['sentiment_score'] = final_sentiment_score
+        
+        # 即時推送到儀表板最後結果
+        db_notifier.notify("analysis_result", {"final_score": final_sentiment_score})
+        db_notifier.notify("decision", decision)
 
         final_decision = decision
+        db_notifier.log(f"🎯 哨兵策略生成：建議【{decision['action']}】", "success")
         
-    except ImportError:
-        print("⚠️ 警告: 找不到 analyzer 或 sentinel 模組。")
-        final_decision = None # 或者給予預設決策
+    except Exception as e:
+        db_notifier.log(f"❌ 分析決策階段發生錯誤: {str(e)}", "error")
+        final_decision = None
 
-    # --- Block 3: Final Report Construction --- (✅ 建構報告)
-    print("📊 正在建構今日戰略報告...")
+    # --- Block 3: Final Report Construction ---
+    db_notifier.status("reporting")
+    db_notifier.log("📊 正在建構與發送最終戰略報告...", "system")
     
-    # 根據 AI 的分析結果和偵察數建構報告
     report = construct_report(final_decision, intelligence_count) 
     
-    # --- Block 4: Final Reporting (LINE) --- (✅ 發送通報)
-    print("📡 正在發送戰略報告到 LINE...")
-    notifier.send_text(report)
-    print("✅ 戰略報告發送成功！")
+    # --- Block 4: Final Reporting (LINE) ---
+    try:
+        notifier.send_text(report)
+        db_notifier.log("✅ LINE 戰略通報已送達 comandante 終端。", "success")
+    except Exception as e:
+        db_notifier.log(f"❌ LINE 發送失敗: {str(e)}", "error")
+
+    # --- Block 5: Persistence (Save History) ---
+    db_notifier.log("💾 正在執行數據持久化...", "system")
+    try:
+        history_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs", "history")
+        if not os.path.exists(history_dir):
+            os.makedirs(history_dir)
+            
+        today_file = os.path.join(history_dir, f"{datetime.now().strftime('%Y-%m-%d')}.json")
+        
+        history_data = {
+            "date": datetime.now().strftime("%Y-%m-%d %H:%M"),
+            "intelligence_count": intelligence_count,
+            "intelligence": all_intelligence,
+            "decision": final_decision
+        }
+        
+        with open(today_file, "w", encoding="utf-8") as f:
+            json.dump(history_data, f, ensure_ascii=False, indent=4)
+            
+        db_notifier.log(f"✅ 歷史數據已儲存: {os.path.basename(today_file)}", "success")
+    except Exception as e:
+        db_notifier.log(f"❌ 數據持久化失敗: {str(e)}", "error")
+
+    db_notifier.status("idle")
+    db_notifier.log("🏁 任務圓滿結束，系統回歸低能耗監控模式。", "system")
 
 if __name__ == "__main__":
     main()
