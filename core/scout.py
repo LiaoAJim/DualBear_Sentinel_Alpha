@@ -27,7 +27,7 @@ class PttStockScout:
         recon_results = []
         current_url = self.board_url
 
-        print(f"📡 PTT 偵察員：開始偵察 PTT Stock 板 (預計抓取 {pages} 頁)...")
+        print(f"[START] PTT 偵察員：開始偵察 PTT Stock 板 (預計抓取 {pages} 頁)...")
 
         import time
         for page in range(pages):
@@ -38,14 +38,14 @@ class PttStockScout:
                     response = requests.get(current_url, cookies=self.cookies, headers=self.headers, timeout=15)
                     if response.status_code == 200:
                         break
-                    print(f"⚠️ PTT 頁面存取異常 (狀態碼: {response.status_code})，第 {retry+1} 次重試...")
+                    print(f"[WARN] PTT 頁面存取異常 (狀態碼: {response.status_code})，第 {retry+1} 次重試...")
                 except Exception as e:
-                    print(f"⚠️ PTT 連線異常 ({e})，第 {retry+1} 次重試...")
+                    print(f"[WARN] PTT 連線異常 ({e})，第 {retry+1} 次重試...")
                 
                 if retry < max_retries - 1:
                     time.sleep(5)
                 else:
-                    print("❌ PTT 偵察失敗：已達最大重試次數。")
+                    print("[FAIL] PTT 偵察失敗：已達最大重試次數。")
                     return recon_results
             
             try:
@@ -124,10 +124,10 @@ class PttStockScout:
                 time.sleep(2) 
 
             except Exception as e:
-                print(f"❌ 偵察過程中發生嚴重錯誤：{e}")
+                print(f"[ERROR] 偵察過程中發生嚴重錯誤：{e}")
                 break
 
-        print(f"✅ PTT 偵察完成！成功抓取 {len(recon_results)} 則具備草根影響力的情報。")
+        print(f"[OK] PTT 偵察完成！成功抓取 {len(recon_results)} 則具備草根影響力的情報。")
         return recon_results
 
 if __name__ == "__main__":

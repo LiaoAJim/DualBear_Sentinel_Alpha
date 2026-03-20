@@ -1,0 +1,44 @@
+{
+    "date": "2026-03-19 12:08",
+    "intelligence_count": 5,
+    "intelligence": [
+        {
+            "title": "Re: [新聞] 快訊／免發票時代終結！財政部祭大絕",
+            "url": "https://www.ptt.cc/bbs/Stock/M.1773882761.A.7E3.html",
+            "category": "social",
+            "source": "PTT Stock"
+        },
+        {
+            "title": "[新聞] 東聯全線產品漲價",
+            "url": "https://www.ptt.cc/bbs/Stock/M.1773882914.A.02A.html",
+            "category": "social",
+            "source": "PTT Stock"
+        },
+        {
+            "title": "[新聞] 伊朗警告數小時後 卡塔爾拉斯拉凡工業城遭導彈襲擊",
+            "url": "https://www.ptt.cc/bbs/Stock/M.1773884640.A.29C.html",
+            "category": "social",
+            "source": "PTT Stock"
+        },
+        {
+            "title": "Re: [請益] 為啥國際油價狂飆，經濟也是很好啊",
+            "url": "https://www.ptt.cc/bbs/Stock/M.1773885511.A.50F.html",
+            "category": "social",
+            "source": "PTT Stock"
+        },
+        {
+            "title": "[新聞] ASIC伺服器帶動BMC需求，新唐營運迎轉機",
+            "url": "https://www.ptt.cc/bbs/Stock/M.1773886208.A.2D6.html",
+            "category": "social",
+            "source": "PTT Stock"
+        }
+    ],
+    "decision": {
+        "action": "減碼",
+        "target_position": "25%",
+        "recon_notes": "⚠️ 市場新聞過於燥熱 (AI:0.88)。 量化籌碼處於常規區間。",
+        "risk_status": "HIGH",
+        "quant_adjustment": 0,
+        "sentiment_score": 0.88
+    }
+}

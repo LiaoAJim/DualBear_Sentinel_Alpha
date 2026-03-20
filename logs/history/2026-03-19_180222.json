@@ -1,0 +1,175 @@
+{
+    "date": "2026-03-19 18:02",
+    "intelligence_count": 26,
+    "analysis_stats": {
+        "total": 26,
+        "success": 26,
+        "failure": 0
+    },
+    "intelligence": [
+        {
+            "title": "[新聞] 黃金失速連跌6天！鮑爾談話難解能源擔憂",
+            "url": "https://www.ptt.cc/bbs/Stock/M.1773912905.A.ABB.html",
+            "category": "social",
+            "source": "PTT Stock"
+        },
+        {
+            "title": "[情報] 5876 上海商銀 114年股利:1.8+0.1",
+            "url": "https://www.ptt.cc/bbs/Stock/M.1773913102.A.16C.html",
+            "category": "social",
+            "source": "PTT Stock"
+        },
+        {
+            "title": "[情報] 旺宏 欣興 富時相關指數納入刪除延期",
+            "url": "https://www.ptt.cc/bbs/Stock/M.1773913268.A.346.html",
+            "category": "social",
+            "source": "PTT Stock"
+        },
+        {
+            "title": "[新聞] 漲價潮蔓延！全球雲端運算巨頭集體調高",
+            "url": "https://www.ptt.cc/bbs/Stock/M.1773914035.A.76E.html",
+            "category": "social",
+            "source": "PTT Stock"
+        },
+        {
+            "title": "[情報] 3135 凌航 1月自結:4.72 年增:15,633.33%",
+            "url": "https://www.ptt.cc/bbs/Stock/M.1773914160.A.398.html",
+            "category": "social",
+            "source": "PTT Stock"
+        },
+        {
+            "title": "Re: [新聞] 央行利率連8凍、鬆綁房市！ 自然人第2戶",
+            "url": "https://www.ptt.cc/bbs/Stock/M.1773914314.A.675.html",
+            "category": "social",
+            "source": "PTT Stock"
+        },
+        {
+            "title": "開放移工大鬆綁！外籍幫傭新制4/13上路「家有12歲以下兒童」即可申請",
+            "url": "https://news.cnyes.com/news/id/6390788",
+            "category": "news",
+            "source": "鉅亨網 ANUE"
+        },
+        {
+            "title": "霸氣咬住大趨勢、兆赫、至上、華星光、「兆赫2」",
+            "url": "https://news.cnyes.com/news/id/6390791",
+            "category": "news",
+            "source": "鉅亨網 ANUE"
+        },
+        {
+            "title": "東擎搶攻邊緣運算商機 發表迷你AI工作站搭載AMD頂規處理器",
+            "url": "https://news.cnyes.com/news/id/6390803",
+            "category": "news",
+            "source": "鉅亨網 ANUE"
+        },
+        {
+            "title": "新保品牌新形象影片《光之呼吸》 安心大使「咪保」首度亮相",
+            "url": "https://news.cnyes.com/news/id/6390790",
+            "category": "news",
+            "source": "鉅亨網 ANUE"
+        },
+        {
+            "title": "易威併購健亞盼實現跨區域、跨技術產業生態系 帶領健亞5年營收翻倍",
+            "url": "https://news.cnyes.com/news/id/6390785",
+            "category": "news",
+            "source": "鉅亨網 ANUE"
+        },
+        {
+            "title": "〈臺企銀法說〉獲利連4年破百億 EPS同創新高！今年申辦財管2.0前進亞資中心搶攻高資產",
+            "url": "https://news.cnyes.com/news/id/6390684",
+            "category": "news",
+            "source": "鉅亨網 ANUE"
+        },
+        {
+            "title": "台股爆量下殺失守月線，後市怎麼看？三大逆勢主流股浮上檯面",
+            "url": "https://news.cnyes.com/news/id/6390789",
+            "category": "news",
+            "source": "鉅亨網 ANUE"
+        },
+        {
+            "title": "裕慶新增家用門鎖及板金加工事業部門 投資印尼新廠已完工備料",
+            "url": "https://news.cnyes.com/news/id/6390685",
+            "category": "news",
+            "source": "鉅亨網 ANUE"
+        },
+        {
+            "title": "央行利率連八凍 明起房市管制鬆綁",
+            "url": "https://tw.stock.yahoo.com/news/%E5%A4%AE%E8%A1%8C%E5%88%A9%E7%8E%87%E9%80%A38%E5%87%8D%E3%80%81%E9%AC%86%E7%B6%81%E6%88%BF%E5%B8%82%EF%BC%81-%E8%B3%BC%E5%B1%8B%E6%97%8F%E7%AC%AC2%E6%88%B6%E8%B2%B8%E6%AC%BE%E6%88%90%E6%95%B85%E6%88%90%E8%AE%8A6%E6%88%90-084421004.html",
+            "category": "news",
+            "source": "Yahoo 股市"
+        },
+        {
+            "title": "財富自由 台積電前主管年薪千萬裸辭",
+            "url": "https://tw.stock.yahoo.com/news/%E7%84%A1%E8%81%8A%E8%B3%BA%E9%8C%A2%E8%A1%931-%E5%8F%B0%E7%A9%8D%E9%9B%BB%E5%89%8D%E8%B2%A1%E5%8B%99%E4%B8%BB%E7%AE%A1%E5%B9%B4%E8%96%AA%E5%8D%83%E8%90%AC%E5%8D%BB%E8%A3%B8%E8%BE%AD-%E9%83%9D%E5%93%A5%E6%8F%AD%E8%B2%A1%E5%AF%8C%E8%87%AA%E7%94%B12%E4%BB%B6%E4%BA%8B-212859686.html",
+            "category": "news",
+            "source": "Yahoo 股市"
+        },
+        {
+            "title": "韓電競選手股海心法 買三星精準獲利",
+            "url": "https://tw.stock.yahoo.com/news/%E3%80%8A%E8%8B%B1%E9%9B%84%E8%81%AF%E7%9B%9F%E3%80%8Bshowmaker%E5%AF%A6%E6%B3%81%E5%A4%A7%E8%AB%87%E8%82%A1%E7%A5%A8%EF%BC%81%E8%B2%B7%E4%B8%89%E6%98%9F%E7%B2%BE%E6%BA%96%E6%8A%BD%E8%BA%AB%E7%8D%B2%E5%88%A9%EF%BC%8C%E8%BD%89%E9%A0%AD%E9%90%B5%E9%BD%92%E5%8A%A0%E7%A2%BC%E5%87%B9%E5%96%AE%E7%AC%91%E7%BF%BB%E9%9A%8A%E5%8F%8B-083004498.html",
+            "category": "news",
+            "source": "Yahoo 股市"
+        },
+        {
+            "title": "外資909億大提款 專家看台股還沒慌",
+            "url": "https://tw.stock.yahoo.com/news/%E3%80%90follow%E6%B3%95%E4%BA%BA%E3%80%91%E5%A4%96%E8%B3%87%E8%B3%A3%E8%B6%85909%E5%84%84%E5%85%83%E5%89%B5%E5%8F%B2%E4%B8%8A%E7%AC%AC8%E5%A4%A7%EF%BC%81%E6%8F%90%E6%AC%BE%E5%8F%B0%E7%A9%8D%E9%9B%BB421%E5%84%84%E5%85%83-%E9%9D%A2%E6%9D%BF%E9%9B%99%E8%99%8E%E4%B9%9F%E9%81%AD%E6%AE%83-071045781.html",
+            "category": "news",
+            "source": "Yahoo 股市"
+        },
+        {
+            "title": "金價一跳水 大戶提千萬現金銀樓掃貨",
+            "url": "https://tw.stock.yahoo.com/news/%E3%80%90%E9%BB%83%E9%87%91%E5%A4%A7%E8%B7%B3%E6%B0%B4%E3%80%91%E9%8A%80%E6%A8%93%E7%88%86%E3%80%8C%E6%90%B6%E9%87%91%E6%BD%AE%E3%80%8D-%E5%A4%A7%E6%88%B6%E6%8F%90%E3%80%8C%E5%8D%83%E8%90%AC%E7%8F%BE%E9%87%91%E8%A1%8C%E6%9D%8E%E7%AE%B1%E3%80%8D%E6%8E%83%E8%B2%A8-071347554.html",
+            "category": "news",
+            "source": "Yahoo 股市"
+        },
+        {
+            "title": "新青安「緊箍咒」拆了沒用？金管會：七大行庫水龍頭放出1175億元活水",
+            "url": "https://tw.stock.yahoo.com/news/%E6%96%B0%E9%9D%92%E5%AE%89%E3%80%8C%E7%B7%8A%E7%AE%8D%E5%92%92%E3%80%8D%E6%8B%86%E4%BA%86%E6%B2%92%E7%94%A8%EF%BC%9F%E9%87%91%E7%AE%A1%E6%9C%83%EF%BC%9A%E4%B8%83%E5%A4%A7%E8%A1%8C%E5%BA%AB%E6%B0%B4%E9%BE%8D%E9%A0%AD%E6%94%BE%E5%87%BA1175%E5%84%84%E5%85%83%E6%B4%BB%E6%B0%B4-095001198.html",
+            "category": "news",
+            "source": "Yahoo 股市"
+        },
+        {
+            "title": "中東重要能源設施又被炸！布蘭特原油衝到每桶117美元在多座中東最重要能源設施遭到攻擊後，布蘭特原油19日盤中一度飆升至每桶117美元。市場日益擔憂這場已爆發近三周的衝突，可能會帶來更嚴重的衝擊。\n\n彭博資訊報導，伊朗18日對卡達一處主要液化天然氣設...",
+            "url": "https://money.udn.com/money/story/5599/9390845?from=edn_maintab_index",
+            "category": "news",
+            "source": "經濟日報 UDN"
+        },
+        {
+            "title": "央行鬆綁房市管制 自然人第二戶貸款成數從5成放寬至6成中央銀行19日舉行今年第1季理監事會，會中決議調整房市管制，將自然人第2戶貸款成數由5成調升為6成。\n\n\n\n央行自推出第七波房市信用管制至今已約1年半，中央銀行表示，自2024年9月本行第七度調整...",
+            "url": "https://money.udn.com/money/story/7307/9390779?from=edn_maintab_index",
+            "category": "news",
+            "source": "經濟日報 UDN"
+        },
+        {
+            "title": "春天最好的投資／訂經濟，請你喝咖啡，再抽東京來回機票從關稅到戰火，全球市場像春天天氣一樣難以捉摸？在變局中，眼界就是你最強的避險資產。\n加入《經濟日報數位訂閱》，請你喝杯咖啡冷靜佈局，年訂再抽東京機票。讓你一手掌握世界脈動，一手領取機票飛東京！\n\n ...",
+            "url": "https://money.udn.com/money/story/123882/9378303?from=edn_maintab_index_mkt2603",
+            "category": "news",
+            "source": "經濟日報 UDN"
+        },
+        {
+            "title": "央行政策利率連八凍央行今召開2026年首季理監事會，會後宣布政策利率連八凍。\n\n編輯推薦\n利率連八凍 央行放寬第二戶成數管控至六成\n央行宣布上修全年 CPI 及核心 CPI 年增率預測值分別為1.80%、1.75%...",
+            "url": "https://money.udn.com/money/story/5613/9390746?from=edn_maintab_index",
+            "category": "news",
+            "source": "經濟日報 UDN"
+        },
+        {
+            "title": "增資股上市也不怕 景碩翻紅收383.5元 抽中1張賺23.85萬、報酬率164%景碩（3189）在辦理增資公開申購時曾吸引逾47.6萬人搶抽，中籤率1.24%，5,950張增資股19日上市，股價開低走高，盤中一度衝達398元， 終場收在383.5元；若以增資抽籤的承銷價145元...",
+            "url": "https://money.udn.com/money/story/5710/9390523?from=edn_maintab_index",
+            "category": "news",
+            "source": "經濟日報 UDN"
+        },
+        {
+            "title": "外資狂砍909億元！三大法人倒貨1,020億元 台股重挫資金轉戰櫃買受中東戰火升級，油價持續攀高，亞股19日隨美股下挫，日韓股股市分別大跌逾3%、2.5%。台股也無法倖免於難，在台積電（2330）帶頭回落之下，集中市場指數下跌658.9點、跌幅1.92%，收33,6...",
+            "url": "https://money.udn.com/money/story/5607/9390498?from=edn_maintab_index",
+            "category": "news",
+            "source": "經濟日報 UDN"
+        }
+    ],
+    "decision": {
+        "action": "持平",
+        "target_position": "50%",
+        "recon_notes": "☕ 市場情緒中性 (AI:-0.02)。 量化籌碼處於常規區間。",
+        "risk_status": "NORMAL",
+        "quant_adjustment": 0,
+        "sentiment_score": -0.015384615384615385
+    }
+}

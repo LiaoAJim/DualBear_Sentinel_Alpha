@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="dark">
     <title>雙熊哨兵戰略儀表板 | DualBear Sentinel</title>
     <link rel="stylesheet" href="/static/css/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
@@ -12,16 +13,22 @@
     <header>
         <div class="logo">
             <i class="fas fa-shield-halved" style="color: var(--accent-blue); margin-right: 10px;"></i>
-            雙熊哨兵戰略系統 <span style="font-weight: 400; font-size: 14px; opacity: 0.6;">旗艦版 v1.0</span>
+            雙熊哨兵戰略系統 
+            <span style="font-weight: 400; font-size: 14px; opacity: 0.6; margin-left: 10px;">旗艦版 v1.0</span>
         </div>
+
+        <div id="conn-status" class="status-indicator-center disconnect">
+            <span class="dot"></span>
+            <span class="status-text">斷開連線</span>
+        </div>
+
         <div class="header-right">
             <div class="system-controls">
+                <button id="btn-lexicon" class="header-btn"><i class="fas fa-book-open"></i> 詞庫</button>
+                <button id="btn-manual" class="header-btn"><i class="fas fa-book"></i> 系統手冊</button>
                 <button id="btn-run" class="run-btn"><i class="fas fa-play"></i> 立即執行</button>
                 <button id="btn-history" class="header-btn"><i class="fas fa-history"></i> 歷史檔案</button>
-                <div id="conn-status" class="status-indicator">
-                    <span class="dot"></span>
-                    <span class="status-text">斷開連線</span>
-                </div>
+                <button id="btn-backtest" class="header-btn" style="background: rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.3);"><i class="fas fa-chart-line"></i> 回測驗證</button>
             </div>
         </div>
     </header>
@@ -48,17 +55,15 @@
         </div>
     </div>
 
-    <main>
-        <!-- 左側情報牆 -->
-        <section class="panel">
+    <main id="main-grid">
+        <!-- 第一欄：情報偵察 -->
+        <section class="panel" id="intelligence-panel">
             <div class="panel-header">
                 <h2 class="panel-title"><i class="fas fa-broadcast-tower"></i> 實時偵察情報網</h2>
                 <span id="news-count" class="count-badge">0 則偵察</span>
             </div>
-
             <div class="main-content">
                 <div class="feed-content" id="intelligence-feed">
-                    <!-- 情報項目將由 JS 注入 -->
                     <div class="empty-state">
                         <i class="fas fa-search"></i>
                         <p>等待偵察數據導入...</p>
@@ -67,14 +72,51 @@
             </div>
         </section>
 
-        <!-- 中間情緒核心 -->
-        <section class="panel">
-            <div class="panel-header">
-                <h2 class="panel-title"><i class="fas fa-microchip"></i> AI 情緒核心</h2>
+        <!-- 第二欄：情緒核心 -->
+        <section class="panel" id="sentiment-panel">
+            <div class="panel-header" style="flex-wrap: nowrap; gap: 8px; align-items: center;">
+                <h2 class="panel-title" style="white-space: nowrap; margin-right: auto;"><i class="fas fa-microchip"></i> AI情緒核心</h2>
+                <div class="analysis-stats" id="analysis-stats-container" style="display: flex; gap: 10px;">
+                    <span class="stat-item" title="總分析數量"><i class="fas fa-list-ol"></i> <span id="stat-total">0</span></span>
+                    <span class="stat-item success" title="分析成功"><i class="fas fa-check-circle"></i> <span id="stat-success">0</span></span>
+                    <span class="stat-item failure" title="分析失敗"><i class="fas fa-exclamation-triangle"></i> <span id="stat-failure">0</span></span>
+                </div>
             </div>
-            <div class="sentiment-display">
+            <div class="sentiment-display" style="position: relative;">
+                <div class="report-timestamp" id="report-timestamp" style="
+                    position: absolute;
+                    top: 10px;
+                    left: 15px;
+                    font-size: 10px;
+                    color: var(--accent-blue);
+                    font-weight: 600;
+                    opacity: 0.8;
+                    z-index: 5;
+                ">
+                    <!-- 由 JS 動態填入 -->
+                </div>
+                <!-- AI 引擎選單 (放在圓的右上角) -->
+                <select id="provider-select" style="
+                    position: absolute;
+                    top: 10px;
+                    right: 10px;
+                    z-index: 10;
+                    background: rgba(30, 34, 39, 0.9);
+                    border: 1px solid rgba(255, 255, 255, 0.15);
+                    color: #fff;
+                    font-size: 10px;
+                    padding: 4px 8px;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    min-width: 120px;
+                ">
+                    <option value="auto">⚙️ Auto</option>
+                    <option value="gemini">✨ Gemini</option>
+                    <option value="nvidia">⚡ NVIDIA</option>
+                    <option value="rule">📋 規則引擎</option>
+                </select>
                 <div class="gauge-container">
-                    <svg width="240" height="240" viewBox="0 0 100 100">
+                    <svg viewBox="0 0 100 100">
                         <circle cx="50" cy="50" r="45" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="6"/>
                         <circle id="gauge-progress" cx="50" cy="50" r="45" fill="none" 
                                 stroke="url(#gauge-gradient)" stroke-width="6" 
@@ -93,55 +135,270 @@
                         <div class="score-label" id="sentiment-flavor">中性</div>
                     </div>
                 </div>
-                
                 <div id="ai-thought" class="ai-thought-bubble">
                     等待數據導入，準備點火分析儀...
                 </div>
             </div>
-            
-            <div class="log-panel">
-                <div class="log-header">
-                    <span><i class="fas fa-terminal"></i> 系統監控日誌</span>
+            <div class="log-header">
+                <span><i class="fas fa-terminal"></i> 系統監控日誌</span>
+                <div style="display: flex; gap: 8px;">
+                    <button id="view-full-log" class="clear-btn" style="background: transparent; border: none; margin-right: 5px;"><i class="fas fa-expand-alt"></i> 展開內容</button>
                     <button id="clear-logs" class="clear-btn">清除</button>
                 </div>
-                <div class="log-content" id="system-logs">
-                    <!-- 日誌將在此顯示 -->
-                    <div class="log-entry system">系統就緒，等待連線...</div>
-                </div>
             </div>
+            <div class="log-content" id="system-logs"></div>
         </section>
 
-        <!-- 右側戰略決策 -->
-        <section class="panel">
+        <!-- 第三欄：哨兵決策 -->
+        <section class="panel" id="decision-panel">
             <div class="panel-header">
                 <h2 class="panel-title"><i class="fas fa-chess-knight"></i> 哨兵決策判斷</h2>
             </div>
             
             <div class="decision-card">
                 <div class="decision-label">建議操作</div>
-                <div class="decision-action" id="decision-action">觀望</div>
-                <div class="decision-divider"></div>
+                <div id="decision-action" class="decision-action">觀望</div>
+                
                 <div class="decision-label">建議倉位</div>
-                <div class="decision-value" id="target-position">50%</div>
+                <div id="target-position" class="decision-value">50%</div>
+                
+                <!-- 🔍 核心量化指標：直接佈局，不再有多餘容器感 -->
+                <div class="quant-stats-container">
+                    <div class="quant-item">
+                        <span class="quant-label">融資</span>
+                        <span id="quant-margin" class="quant-value">-- %</span>
+                    </div>
+                    <div class="quant-item">
+                        <span class="quant-label">散戶</span>
+                        <span id="quant-retail" class="quant-value">--</span>
+                    </div>
+                    <div class="quant-item">
+                        <span class="quant-label">VIX</span>
+                        <span id="quant-vix" class="quant-value">--</span>
+                    </div>
+                </div>
             </div>
 
-            <div class="recon-notes-container">
-                <h3 class="notes-title"><i class="fas fa-file-contract"></i> 戰略理由 (Recon Notes)</h3>
-                <p id="decision-notes" class="notes-content">
-                    目前尚無偵察結果，系統持續監控市場脈動中...
+            <div class="recon-notes-container" style="flex: 1; padding: 0 15px;">
+                <h3 class="notes-title" style="font-size: 11px; color: var(--text-dim); margin-bottom: 10px;">
+                    <i class="fas fa-file-contract"></i> 戰略理由 (Recon Notes)
+                </h3>
+                <p id="decision-notes" class="notes-content" style="font-size: 13px; line-height: 1.6; color: #cbd5e1;">
+                    系統持續監控市場脈動中...
                 </p>
             </div>
 
-            <div class="line-status-box">
-                <div class="status-row">
-                    <span><i class="fab fa-line"></i> LINE 通訊狀態</span>
-                    <span id="line-status" class="status-online">● 同步傳輸中</span>
+            <!-- 📱 LINE 通訊狀態頁腳 (還原) -->
+            <div class="panel-footer" style="padding: 12px 15px; border-top: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.2);">
+                <div class="line-status-info" style="font-size: 11px; color: #fff; display: flex; align-items: center; gap: 8px;">
+                    <i class="fab fa-line" style="font-size: 14px; color: #00c300;"></i> LINE 通訊狀態
+                </div>
+                <div class="line-sync-state" style="font-size: 11px; color: #00c300; display: flex; align-items: center; gap: 5px;">
+                    <span class="sync-dot"></span> 同步傳輸中
+                </div>
+            </div>
+        </section>
+
+        <!-- 第四欄：資產配置 -->
+        <section class="panel" id="asset-panel" style="display: flex; flex-direction: column; overflow: hidden;">
+            <div class="panel-header">
+                <h2 class="panel-title"><i class="fas fa-calculator"></i> 投資精算配置</h2>
+            </div>
+            
+            <div style="flex: 1; overflow-y: auto; padding: 15px;">
+                <div class="input-item" style="margin-bottom: 10px;">
+                    <label style="font-size: 11px; color: var(--accent-blue); margin-bottom: 3px; display: block; font-weight: 700;">長期持倉佔比 (%)</label>
+                    <input type="number" id="input-longterm-percent" value="50" min="0" max="100" style="width: 100%; padding: 6px; font-size: 13px;">
+                </div>
+                <div class="input-item" style="margin-bottom: 10px;">
+                    <label style="font-size: 11px; color: var(--text-dim); margin-bottom: 3px; display: block;">閒置資金</label>
+                    <input type="number" id="input-spare-cash" value="500000" style="width: 100%; padding: 6px; font-size: 13px;">
+                </div>
+                <div class="input-item" style="margin-bottom: 10px;">
+                    <label style="font-size: 11px; color: var(--text-dim); margin-bottom: 3px; display: block;">持股市值</label>
+                    <input type="number" id="input-current-stock" value="500000" style="width: 100%; padding: 6px; font-size: 13px;">
+                </div>
+                <div style="margin: 12px 0; text-align: center;">
+                    <button id="btn-add-leverage2" style="
+                        padding: 6px 16px;
+                        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+                        border: 1px solid rgba(245, 158, 11, 0.3);
+                        border-radius: 6px;
+                        color: #fff;
+                        font-size: 11px;
+                        font-weight: 700;
+                        cursor: pointer;
+                    ">
+                        <i class="fas fa-chart-pie" style="margin-right: 4px;"></i> 曝險加權
+                    </button>
+                </div>
+                <div id="leverage2-display" class="hidden">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span id="leverage2-info" style="font-size: 11px; color: #f59e0b;"></span>
+                        <span style="font-size: 14px; font-weight: 700; color: #fff;" id="leverage2-value">$0</span>
+                    </div>
+                    <button id="btn-remove-leverage2" onclick="removeLeverage2()" style="margin-top: 6px; width: 100%; padding: 4px; background: transparent; border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 4px; color: #ef4444; font-size: 10px; cursor: pointer;">移除全部</button>
+                </div>
+
+                <div style="margin-top: 15px; padding-top: 15px; border-top: 1px dashed rgba(255,255,255,0.1);">
+                    <div style="text-align: center; margin-bottom: 10px;">
+                        <div style="font-size: 11px; color: var(--text-dim);">當前總資產</div>
+                        <div id="label-total-asset" style="font-size: 20px; font-weight: 900; color: var(--accent-blue);">$ 1,000,000</div>
+                        <div style="margin-top: 5px; display: flex; justify-content: center; align-items: center; gap: 8px;">
+                            <span style="font-size: 10px; color: var(--text-dim);">曝險 </span>
+                            <span id="label-exposure-value" style="font-size: 12px; font-weight: 700; color: #f59e0b; background: rgba(245,158,11,0.15); padding: 2px 6px; border-radius: 4px;">--</span>
+                            <span style="font-size: 10px; color: var(--text-dim);">Beta </span>
+                            <span id="label-current-beta" style="font-size: 12px; font-weight: 700; color: #fff; background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px;">0.50</span>
+                        </div>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px;">
+                        <div class="result-item">
+                            <span class="label">建議持股</span>
+                            <span id="target-stock-value" class="value" style="font-size: 14px; color: #fff;">$ 750,000</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="label">建議保現</span>
+                            <span id="suggest-cash-value" class="value" style="font-size: 14px; color: #fff;">$ 250,000</span>
+                        </div>
+                    </div>
+                    <div style="padding: 10px; background: rgba(0, 210, 255, 0.08); border-radius: 8px; text-align: center;">
+                        <span style="font-size: 11px; color: var(--text-dim);">操作建議</span>
+                        <div id="calc-suggest-action" style="font-size: 16px; color: var(--accent-blue); font-weight: 800;">--</div>
+                    </div>
                 </div>
             </div>
         </section>
     </main>
 
     <!-- 歷史查詢抽屜 (全局層級) -->
+    <!-- 📜 全量日誌彈窗 -->
+    <div id="full-log-modal" style="
+        display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.85); z-index: 9999; justify-content: center; align-items: center;
+    ">
+        <div style="background: #1a1c1e; border: 1px solid rgba(255,255,255,0.15); border-radius: 16px;
+                    width: 90%; max-width: 900px; height: 80vh; display: flex; flex-direction: column; overflow: hidden;
+                    box-shadow: 0 20px 60px rgba(0,0,0,0.5);">
+            <div style="padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.1);
+                        display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
+                <h3 style="margin:0; color:#fff; font-size:16px;">
+                    <i class="fas fa-scroll" style="color: #00d2ff;"></i>
+                    戰略維度：完整監控日誌總覽
+                </h3>
+                <button id="btn-close-full-log"
+                    style="background:transparent; border:1px solid rgba(255,255,255,0.2); color:#fff;
+                           width:32px; height:32px; border-radius:50%; cursor:pointer; font-size:16px;
+                           display:flex; align-items:center; justify-content:center;">✕</button>
+            </div>
+            <div id="full-log-body" style="flex:1; overflow-y:auto; padding:20px;
+                background:#0d0e10; color:#e2e8f0; font-family:'Courier New',monospace;
+                font-size:12px; line-height:1.8; white-space:pre-wrap; min-height:0;"></div>
+            <div style="padding:12px 20px; border-top:1px solid rgba(255,255,255,0.1); text-align:right; flex-shrink: 0;">
+                <button id="btn-close-full-log-bottom"
+                    style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.15);
+                    color:#fff; padding:6px 16px; border-radius:8px; cursor:pointer;">關閉視窗</button>
+            </div>
+        </div>
+    </div>
+    <!-- 🖱️ 雙熊黑系：自定義右鍵選單 (Custom Context Menu) -->
+    <div id="custom-context-menu" style="
+        display: none; position: absolute; z-index: 100002;
+        background: rgba(26, 28, 30, 0.95); backdrop-filter: blur(15px);
+        border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.6); padding: 5px 0; width: 180px;
+    ">
+        <div class="menu-item" onclick="location.reload()" style="padding: 10px 15px; cursor: pointer; color: #fff; font-size: 13px; display: flex; align-items: center; gap: 10px;">
+            <i class="fas fa-sync-alt" style="width: 15px; color: var(--accent-blue);"></i> 重新整理
+        </div>
+        <div class="menu-item" onclick="window.scrollTo(0, 0)" style="padding: 10px 15px; cursor: pointer; color: #fff; font-size: 13px; display: flex; align-items: center; gap: 10px;">
+            <i class="fas fa-arrow-up" style="width: 15px; color: var(--accent-pink);"></i> 回到頂部
+        </div>
+        <div style="height: 1px; background: rgba(255,255,255,0.05); margin: 5px 0;"></div>
+        <div class="menu-item" onclick="document.body.requestFullscreen()" style="padding: 10px 15px; cursor: pointer; color: #fff; font-size: 13px; display: flex; align-items: center; gap: 10px;">
+            <i class="fas fa-expand" style="width: 15px; color: var(--accent-purple);"></i> 全螢幕顯示
+        </div>
+        <div class="menu-item" onclick="window.close()" style="padding: 10px 15px; cursor: pointer; color: #ddd; font-size: 13px; display: flex; align-items: center; gap: 10px;">
+            <i class="fas fa-times" style="width: 15px; opacity: 0.6;"></i> 關閉視窗
+        </div>
+    </div>
+
+
+    <!-- 🛡️ 雙熊暗黑風格：確認對話框 (Custom Confirm Modal) -->
+    <div id="custom-confirm-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content" style="max-width: 400px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); background: #1a1c1e; box-shadow: 0 20px 50px rgba(0,0,0,0.8);">
+            <div style="padding: 30px; text-align: center;">
+                <div style="font-size: 40px; color: #ff4b2b; margin-bottom: 15px;">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <h4 style="margin: 0 0 10px; color: #fff; font-size: 18px;">永久刪除確認</h4>
+                <p id="confirm-message" style="margin: 0 auto; color: #ccc; font-size: 14px; line-height: 1.6; max-width: 250px;">
+                    您確定要執行此操作嗎？<br>一旦刪除將無法恢復。
+                </p>
+            </div>
+            <div style="display: flex; border-top: 1px solid rgba(255,255,255,0.05);">
+                <button id="confirm-cancel" style="flex: 1; padding: 15px; background: transparent; border: none; border-right: 1px solid rgba(255,255,255,0.05); color: #888; cursor: pointer; font-weight: 700;">取消</button>
+                <button id="confirm-ok" style="flex: 1; padding: 15px; background: transparent; border: none; color: #ff4b2b; cursor: pointer; font-weight: 900;">確定刪除</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🆕 正2 (槓桿 ETF) 輸入視窗 -->
+    <div id="leverage2-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content" style="max-width: 340px; border-radius: 16px; border: 1px solid rgba(245, 158, 11, 0.3); background: #1a1c1e; box-shadow: 0 20px 50px rgba(0,0,0,0.8);">
+            <div style="padding: 20px;">
+                <div style="text-align: center; margin-bottom: 15px;">
+                    <h4 style="margin: 0 0 5px; color: #fff; font-size: 16px;"><i class="fas fa-bolt" style="color: #f59e0b;"></i> 正2 槓桿ETF</h4>
+                    <p style="margin: 0; color: var(--text-dim); font-size: 11px;">新增後會加入曝險市值計算</p>
+                </div>
+                
+                <div class="leverage2-list" id="leverage2-list" style="margin-bottom: 15px; max-height: 200px; overflow-y: auto;">
+                    <!-- 動態產生 -->
+                </div>
+                
+                <button id="btn-add-leverage2-item" style="
+                    width: 100%;
+                    padding: 10px;
+                    background: rgba(245, 158, 11, 0.1);
+                    border: 1px dashed rgba(245, 158, 11, 0.3);
+                    border-radius: 8px;
+                    color: #f59e0b;
+                    font-size: 12px;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 6px;
+                ">
+                    <i class="fas fa-plus"></i> 新增一筆
+                </button>
+            </div>
+            <div style="display: flex; border-top: 1px solid rgba(245, 158, 11, 0.2);">
+                <button id="leverage2-cancel" style="flex: 1; padding: 12px; background: transparent; border: none; border-right: 1px solid rgba(255,255,255,0.05); color: #888; cursor: pointer; font-weight: 700;">取消</button>
+                <button id="leverage2-confirm" style="flex: 1; padding: 12px; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border: none; color: #fff; cursor: pointer; font-weight: 900;">儲存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🆕 正2 新增/編輯 表單 -->
+    <div id="leverage2-form-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content" style="max-width: 300px; border-radius: 12px; border: 1px solid rgba(245, 158, 11, 0.3); background: #1a1c1e; padding: 20px;">
+            <h5 style="margin: 0 0 15px; color: #fff; font-size: 14px; text-align: center;"><i class="fas fa-edit" style="color: #f59e0b;"></i> <span id="leverage2-form-title">新增</span></h5>
+            <div style="margin-bottom: 12px;">
+                <label style="font-size: 11px; color: var(--text-dim); display: block; margin-bottom: 4px;">代號</label>
+                <input type="text" id="form-leverage2-symbol" placeholder="例：00631L" style="width:100%; padding:8px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.1); border-radius:6px; color:#fff; font-size:13px; text-transform:uppercase; box-sizing:border-box;">
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label style="font-size: 11px; color: var(--text-dim); display: block; margin-bottom: 4px;">市值 (元)</label>
+                <input type="number" id="form-leverage2-value" placeholder="例：100000" style="width:100%; padding:8px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.1); border-radius:6px; color:#fff; font-size:13px; box-sizing:border-box;">
+            </div>
+            <div style="display: flex; gap: 8px;">
+                <button id="form-leverage2-cancel" style="flex:1; padding:8px; background:transparent; border:1px solid rgba(255,255,255,0.1); border-radius:6px; color:#888; cursor:pointer;">取消</button>
+                <button id="form-leverage2-save" style="flex:1; padding:8px; background:linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border:none; border-radius:6px; color:#fff; cursor:pointer; font-weight:700;">確定</button>
+            </div>
+        </div>
+    </div>
+
     <div id="history-drawer" class="history-drawer">
         <div class="history-header">
             <h3 style="margin:0; font-size:18px; color:#fff;"><i class="fas fa-history"></i> 歷史戰略檔案</h3>
@@ -153,6 +410,201 @@
         </div>
     </div>
 
+    <!-- 回測驗證抽屜 -->
+    <div id="backtest-drawer" class="history-drawer">
+        <div class="history-header">
+            <h3 style="margin:0; font-size:18px; color:#fff;"><i class="fas fa-chart-line"></i> 規則引擎回測驗證</h3>
+            <button id="close-backtest" style="background:transparent; border:none; color:#fff; cursor:pointer;"><i class="fas fa-times"></i></button>
+        </div>
+        <div style="padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; flex-wrap: wrap; align-items: center; gap: 10px;">
+            <label style="color: var(--text-dim); font-size: 12px; white-space: nowrap;">選擇標的：</label>
+            <select id="backtest-symbol" style="
+                background: rgba(255,255,255,0.08);
+                border: 1px solid rgba(255,255,255,0.1);
+                color: #fff;
+                font-size: 12px;
+                padding: 6px 10px;
+                border-radius: 6px;
+                cursor: pointer;
+            ">
+                <option value="^TWII">台灣加權指數 (^TWII)</option>
+                <option value="2330.TW">台積電 (2330)</option>
+                <option value="2317.TW">鴻海 (2317)</option>
+                <option value="2454.TW">聯發科 (2454)</option>
+            </select>
+            <button id="btn-run-backtest" style="
+                background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                border: none;
+                color: #fff;
+                padding: 8px 16px;
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 12px;
+                font-weight: 700;
+            "><i class="fas fa-play"></i> 執行回測</button>
+        </div>
+        <div id="backtest-results" style="flex:1; overflow-y:auto; padding: 20px;">
+            <div style="text-align: center; color: var(--text-dim); padding: 40px;">
+                <i class="fas fa-chart-line" style="font-size: 48px; opacity: 0.3;"></i>
+                <p style="margin-top: 15px;">點擊「執行回測」驗證規則引擎的有效性</p>
+                <p style="font-size: 11px; margin-top: 10px; color: var(--text-dim);">根據歷史情緒分數與隔日股價報酬計算勝率</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="manual-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>📖 雙熊哨兵：戰略手冊與精算邏輯</h3>
+                <button id="close-manual" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <section class="manual-section">
+                    <h4>📡 情報偵察網與真理來源</h4>
+                    <table class="manual-table">
+                        <tr><th>來源</th><th>偵察屬性</th><th>戰略價值</th></tr>
+                        <tr><td>TWSE 官網</td><td>官方數據</td><td>VIX 指數與籌碼真理</td></tr>
+                        <tr><td>WantGoo</td><td>量化指標</td><td>融資維持率與散戶比</td></tr>
+                        <tr><td>經濟日報</td><td>權威媒體</td><td>產業與法人風向</td></tr>
+                        <tr><td>PTT/Yahoo</td><td>大眾輿情</td><td>散戶過熱或恐慌指標</td></tr>
+                    </table>
+                </section>
+
+                <section class="manual-section">
+                    <h4>🧠 核心決策精算公式 (Jade Engine)</h4>
+                    <div class="formula-box">
+                        <p><strong>最終決策 = AI 語意分 (60%) + 量化指標反向因子 (40%)</strong></p>
+                    </div>
+                    <div class="logic-grid">
+                        <div class="logic-item">
+                            <h5>📉 融資維持率修正</h5>
+                            <p>< 140%：目標倉位 +20% (逆勢加碼)</p>
+                        </div>
+                        <div class="logic-item">
+                            <h5>📈 散戶多空比修正</h5>
+                            <p>> +30%：目標倉位 -15% (撤退避險)</p>
+                        </div>
+                        <div class="logic-item">
+                            <h5>😨 VIX 恐慌指數</h5>
+                            <p>> 25：目標倉位 +10%</p>
+                        </div>
+                    </div>
+                </section>
+                
+                <section class="manual-section">
+                    <h4>⚙️ 資產配置計算規則</h4>
+                    <p>依照 AI 建議之「目標倉位」，系統會自動對比當前「總資產」與「持股市值」，產出買賣差額建議。</p>
+                </section>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 📖 詞庫編輯器模態窗口 -->
+    <div id="lexicon-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content" style="max-width: 800px; max-height: 85vh; border: 1px solid var(--accent-blue);">
+            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin: 0; color: var(--accent-blue);"><i class="fas fa-book-open"></i> 情緒詞庫編輯器</h3>
+                <button id="close-lexicon" class="close-btn">&times;</button>
+            </div>
+            <div style="padding: 15px; overflow-y: auto; max-height: calc(85vh - 120px);">
+                <!-- 說明 -->
+                <div style="background: rgba(0,210,255,0.05); padding: 12px; border-radius: 8px; margin-bottom: 15px; border: 1px solid rgba(0,210,255,0.2);">
+                    <p style="margin: 0 0 8px 0; color: var(--accent-blue); font-size: 12px; font-weight: bold;">
+                        <i class="fas fa-info-circle"></i> 詞庫說明
+                    </p>
+                    <ul style="margin: 0; padding-left: 20px; font-size: 11px; color: var(--text-dim); line-height: 1.8;">
+                        <li>每行一個詞彙，格式：<code style="background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px;">詞彙|分數</code></li>
+                        <li>分數範圍：<code style="color: #10b981;">正向 1-10</code>、<code style="color: #ef4444;">負向 -1 to -10</code></li>
+                        <li>例如：<code style="background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px;">漲停|5</code>、<code style="background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px;">利多出盡|-2</code></li>
+                    </ul>
+                </div>
+                
+                <!-- 當前分類 -->
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; font-size: 12px; color: var(--text-dim); margin-bottom: 8px;">
+                        <i class="fas fa-folder-open"></i> 選擇分類
+                    </label>
+                    <select id="lexicon-category" style="
+                        background: rgba(0,0,0,0.3);
+                        border: 1px solid var(--glass-border);
+                        color: #fff;
+                        padding: 8px 12px;
+                        border-radius: 6px;
+                        width: 100%;
+                        font-size: 12px;
+                    ">
+                        <option value="bullish_extreme">🚀 極度正向 (權重 5)</option>
+                        <option value="bullish_strong">📈 強正向 (權重 3)</option>
+                        <option value="bullish_mild">👍 輕微正向 (權重 1)</option>
+                        <option value="bearish_extreme">💀 極度負向 (權重 -5)</option>
+                        <option value="bearish_strong">📉 強負向 (權重 -3)</option>
+                        <option value="bearish_mild">👎 輕微負向 (權重 -1)</option>
+                        <option value="sarcasm_negative">⚠️ 反諷/利空出盡 (權重 -2)</option>
+                        <option value="quant_terms">📊 量化術語 (權重 2)</option>
+                        <option value="crisis_terms">🚨 危機術語 (權重 -3)</option>
+                    </select>
+                </div>
+                
+                <!-- 當前分類詞彙 -->
+                <div style="margin-bottom: 15px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <label style="font-size: 12px; color: var(--text-dim);">
+                            <i class="fas fa-list"></i> 當前分類詞彙
+                        </label>
+                        <span id="lexicon-count" style="font-size: 10px; color: var(--accent-blue);">0 個詞</span>
+                    </div>
+                    <textarea id="lexicon-words" style="
+                        width: 100%;
+                        height: 150px;
+                        background: rgba(0,0,0,0.4);
+                        border: 1px solid var(--glass-border);
+                        border-radius: 8px;
+                        color: #fff;
+                        padding: 12px;
+                        font-size: 13px;
+                        font-family: 'Consolas', monospace;
+                        resize: vertical;
+                        line-height: 1.6;
+                    " placeholder="在此輸入詞彙，每行一個..."></textarea>
+                </div>
+                
+                <!-- 快速添加 -->
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; font-size: 12px; color: var(--text-dim); margin-bottom: 8px;">
+                        <i class="fas fa-bolt"></i> 快速添加
+                    </label>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="lexicon-quick-add" placeholder="輸入詞彙後按 Enter 添加" style="
+                            flex: 1;
+                            background: rgba(0,0,0,0.3);
+                            border: 1px solid var(--glass-border);
+                            color: #fff;
+                            padding: 8px 12px;
+                            border-radius: 6px;
+                            font-size: 12px;
+                        ">
+                        <button id="btn-add-positive" title="添加正向詞" style="background: rgba(16,185,129,0.2); border: 1px solid rgba(16,185,129,0.3); color: #10b981; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-size: 12px;">
+                            <i class="fas fa-plus"></i> 正向
+                        </button>
+                        <button id="btn-add-negative" title="添加負向詞" style="background: rgba(239,68,68,0.2); border: 1px solid rgba(239,68,68,0.3); color: #ef4444; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-size: 12px;">
+                            <i class="fas fa-plus"></i> 負向
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 操作按鈕 -->
+                <div style="display: flex; gap: 10px; justify-content: flex-end; padding-top: 15px; border-top: 1px solid var(--glass-border);">
+                    <button id="btn-reload-lexicon" style="background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: var(--text-dim); padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 12px;">
+                        <i class="fas fa-sync-alt"></i> 重新載入
+                    </button>
+                    <button id="btn-save-lexicon" style="background: linear-gradient(135deg, #00d2ff 0%, #3a7bd5 100%); border: none; color: #fff; padding: 10px 25px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 12px;">
+                        <i class="fas fa-save"></i> 儲存變更
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <script src="/static/js/dashboard.js"></script>
 </body>
 </html>

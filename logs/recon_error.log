@@ -1,0 +1,473 @@
+E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\core\analyzer.py:3: FutureWarning: 
+
+All support for the `google.generativeai` package has ended. It will no longer be receiving 
+updates or bug fixes. Please switch to the `google.genai` package as soon as possible.
+See README for more details:
+
+https://github.com/google-gemini/deprecated-generative-ai-python/blob/main/README.md
+
+  import google.generativeai as genai # å°Žå…¥æ–°çš„ SDK
+E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\core\crawler.py:55: SyntaxWarning: invalid escape sequence '\('
+  items = soup.select('ul > li.Py\(14px\)')
+E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\core\analyzer.py:3: FutureWarning: 
+
+All support for the `google.generativeai` package has ended. It will no longer be receiving 
+updates or bug fixes. Please switch to the `google.genai` package as soon as possible.
+See README for more details:
+
+https://github.com/google-gemini/deprecated-generative-ai-python/blob/main/README.md
+
+  import google.generativeai as genai # å°Žå…¥æ–°çš„ SDK
+Traceback (most recent call last):
+  File "E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\master_script.py", line 279, in <module>
+    main()
+  File "E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\master_script.py", line 241, in main
+    report = construct_report(final_decision, intelligence_count) 
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\master_script.py", line 64, in construct_report
+    f"ðŸ’¡ æœ€çµ‚æƒ…ç·’: {decision['sentiment_score']:.2f} ({"åˆ©å¤š" if decision['sentiment_score'] > 0 else "åˆ©ç©º" if decision['sentiment_score'] < 0 else "ä¸­æ€§"})\n\n"
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: unsupported format string passed to NoneType.__format__
+E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\core\analyzer.py:3: FutureWarning: 
+
+All support for the `google.generativeai` package has ended. It will no longer be receiving 
+updates or bug fixes. Please switch to the `google.genai` package as soon as possible.
+See README for more details:
+
+https://github.com/google-gemini/deprecated-generative-ai-python/blob/main/README.md
+
+  import google.generativeai as genai
+E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\core\analyzer.py:3: FutureWarning: 
+
+All support for the `google.generativeai` package has ended. It will no longer be receiving 
+updates or bug fixes. Please switch to the `google.genai` package as soon as possible.
+See README for more details:
+
+https://github.com/google-gemini/deprecated-generative-ai-python/blob/main/README.md
+
+  import google.generativeai as genai
+Traceback (most recent call last):
+  File "E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\master_script.py", line 308, in <module>
+    main()
+  File "E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\master_script.py", line 270, in main
+    report = construct_report(final_decision, intelligence_count) 
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\master_script.py", line 64, in construct_report
+    f"ðŸ’¡ æœ€çµ‚æƒ…ç·’: {decision['sentiment_score']:.2f} ({"åˆ©å¤š" if decision['sentiment_score'] > 0 else "åˆ©ç©º" if decision['sentiment_score'] < 0 else "ä¸­æ€§"})\n\n"
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: unsupported format string passed to NoneType.__format__
+E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\core\analyzer.py:3: FutureWarning: 
+
+All support for the `google.generativeai` package has ended. It will no longer be receiving 
+updates or bug fixes. Please switch to the `google.genai` package as soon as possible.
+See README for more details:
+
+https://github.com/google-gemini/deprecated-generative-ai-python/blob/main/README.md
+
+  import google.generativeai as genai
+Traceback (most recent call last):
+  File "E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\master_script.py", line 313, in <module>
+    main()
+  File "E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\master_script.py", line 275, in main
+    report = construct_report(final_decision, intelligence_count) 
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\master_script.py", line 64, in construct_report
+    f"ðŸ’¡ æœ€çµ‚æƒ…ç·’: {decision['sentiment_score']:.2f} ({"åˆ©å¤š" if decision['sentiment_score'] > 0 else "åˆ©ç©º" if decision['sentiment_score'] < 0 else "ä¸­æ€§"})\n\n"
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: unsupported format string passed to NoneType.__format__
+E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\core\analyzer.py:3: FutureWarning: 
+
+All support for the `google.generativeai` package has ended. It will no longer be receiving 
+updates or bug fixes. Please switch to the `google.genai` package as soon as possible.
+See README for more details:
+
+https://github.com/google-gemini/deprecated-generative-ai-python/blob/main/README.md
+
+  import google.generativeai as genai
+E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\core\analyzer.py:3: FutureWarning: 
+
+All support for the `google.generativeai` package has ended. It will no longer be receiving 
+updates or bug fixes. Please switch to the `google.genai` package as soon as possible.
+See README for more details:
+
+https://github.com/google-gemini/deprecated-generative-ai-python/blob/main/README.md
+
+  import google.generativeai as genai
+Traceback (most recent call last):
+  File "E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\master_script.py", line 313, in <module>
+    main()
+  File "E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\master_script.py", line 275, in main
+    report = construct_report(final_decision, intelligence_count) 
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\master_script.py", line 64, in construct_report
+    f"ðŸ’¡ æœ€çµ‚æƒ…ç·’: {decision['sentiment_score']:.2f} ({"åˆ©å¤š" if decision['sentiment_score'] > 0 else "åˆ©ç©º" if decision['sentiment_score'] < 0 else "ä¸­æ€§"})\n\n"
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: unsupported format string passed to NoneType.__format__
+E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\core\analyzer.py:3: FutureWarning: 
+
+All support for the `google.generativeai` package has ended. It will no longer be receiving 
+updates or bug fixes. Please switch to the `google.genai` package as soon as possible.
+See README for more details:
+
+https://github.com/google-gemini/deprecated-generative-ai-python/blob/main/README.md
+
+  import google.generativeai as genai
+Traceback (most recent call last):
+  File "E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\master_script.py", line 313, in <module>
+    main()
+  File "E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\master_script.py", line 275, in main
+    report = construct_report(final_decision, intelligence_count) 
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\master_script.py", line 64, in construct_report
+    f"ðŸ’¡ æœ€çµ‚æƒ…ç·’: {decision['sentiment_score']:.2f} ({"åˆ©å¤š" if decision['sentiment_score'] > 0 else "åˆ©ç©º" if decision['sentiment_score'] < 0 else "ä¸­æ€§"})\n\n"
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: unsupported format string passed to NoneType.__format__
+E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\core\analyzer.py:3: FutureWarning: 
+
+All support for the `google.generativeai` package has ended. It will no longer be receiving 
+updates or bug fixes. Please switch to the `google.genai` package as soon as possible.
+See README for more details:
+
+https://github.com/google-gemini/deprecated-generative-ai-python/blob/main/README.md
+
+  import google.generativeai as genai
+Traceback (most recent call last):
+  File "E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\master_script.py", line 313, in <module>
+    main()
+  File "E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\master_script.py", line 275, in main
+    report = construct_report(final_decision, intelligence_count) 
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\master_script.py", line 64, in construct_report
+    f"\U0001f4a1 ³Ì²×±¡ºü: {decision['sentiment_score']:.2f} ({"§Q¦h" if decision['sentiment_score'] > 0 else "§QªÅ" if decision['sentiment_score'] < 0 else "¤¤©Ê"})\n\n"
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: unsupported format string passed to NoneType.__format__
+E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\core\analyzer.py:3: FutureWarning: 
+
+All support for the `google.generativeai` package has ended. It will no longer be receiving 
+updates or bug fixes. Please switch to the `google.genai` package as soon as possible.
+See README for more details:
+
+https://github.com/google-gemini/deprecated-generative-ai-python/blob/main/README.md
+
+  import google.generativeai as genai
+Traceback (most recent call last):
+  File "E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\master_script.py", line 313, in <module>
+    main()
+  File "E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\master_script.py", line 275, in main
+    report = construct_report(final_decision, intelligence_count) 
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\master_script.py", line 64, in construct_report
+    f"\U0001f4a1 ³Ì²×±¡ºü: {decision['sentiment_score']:.2f} ({"§Q¦h" if decision['sentiment_score'] > 0 else "§QªÅ" if decision['sentiment_score'] < 0 else "¤¤©Ê"})\n\n"
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: unsupported format string passed to NoneType.__format__
+E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\core\analyzer.py:3: FutureWarning: 
+
+All support for the `google.generativeai` package has ended. It will no longer be receiving 
+updates or bug fixes. Please switch to the `google.genai` package as soon as possible.
+See README for more details:
+
+https://github.com/google-gemini/deprecated-generative-ai-python/blob/main/README.md
+
+  import google.generativeai as genai
+Traceback (most recent call last):
+  File "E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\master_script.py", line 313, in <module>
+    main()
+  File "E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\master_script.py", line 275, in main
+    report = construct_report(final_decision, intelligence_count) 
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\master_script.py", line 64, in construct_report
+    f"\U0001f4a1 ³Ì²×±¡ºü: {decision['sentiment_score']:.2f} ({"§Q¦h" if decision['sentiment_score'] > 0 else "§QªÅ" if decision['sentiment_score'] < 0 else "¤¤©Ê"})\n\n"
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: unsupported format string passed to NoneType.__format__
+E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\core\analyzer.py:3: FutureWarning: 
+
+All support for the `google.generativeai` package has ended. It will no longer be receiving 
+updates or bug fixes. Please switch to the `google.genai` package as soon as possible.
+See README for more details:
+
+https://github.com/google-gemini/deprecated-generative-ai-python/blob/main/README.md
+
+  import google.generativeai as genai
+E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\core\analyzer.py:3: FutureWarning: 
+
+All support for the `google.generativeai` package has ended. It will no longer be receiving 
+updates or bug fixes. Please switch to the `google.genai` package as soon as possible.
+See README for more details:
+
+https://github.com/google-gemini/deprecated-generative-ai-python/blob/main/README.md
+
+  import google.generativeai as genai
+E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\core\analyzer.py:3: FutureWarning: 
+
+All support for the `google.generativeai` package has ended. It will no longer be receiving 
+updates or bug fixes. Please switch to the `google.genai` package as soon as possible.
+See README for more details:
+
+https://github.com/google-gemini/deprecated-generative-ai-python/blob/main/README.md
+
+  import google.generativeai as genai
+E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\core\analyzer.py:3: FutureWarning: 
+
+All support for the `google.generativeai` package has ended. It will no longer be receiving 
+updates or bug fixes. Please switch to the `google.genai` package as soon as possible.
+See README for more details:
+
+https://github.com/google-gemini/deprecated-generative-ai-python/blob/main/README.md
+
+  import google.generativeai as genai
+E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\core\analyzer.py:3: FutureWarning: 
+
+All support for the `google.generativeai` package has ended. It will no longer be receiving 
+updates or bug fixes. Please switch to the `google.genai` package as soon as possible.
+See README for more details:
+
+https://github.com/google-gemini/deprecated-generative-ai-python/blob/main/README.md
+
+  import google.generativeai as genai
+Traceback (most recent call last):
+  File "E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\master_script.py", line 313, in <module>
+    main()
+  File "E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\master_script.py", line 275, in main
+    report = construct_report(final_decision, intelligence_count) 
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\master_script.py", line 64, in construct_report
+    f"\U0001f4a1 ³Ì²×±¡ºü: {decision['sentiment_score']:.2f} ({"§Q¦h" if decision['sentiment_score'] > 0 else "§QªÅ" if decision['sentiment_score'] < 0 else "¤¤©Ê"})\n\n"
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: unsupported format string passed to NoneType.__format__
+E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\core\analyzer.py:3: FutureWarning: 
+
+All support for the `google.generativeai` package has ended. It will no longer be receiving 
+updates or bug fixes. Please switch to the `google.genai` package as soon as possible.
+See README for more details:
+
+https://github.com/google-gemini/deprecated-generative-ai-python/blob/main/README.md
+
+  import google.generativeai as genai
+Traceback (most recent call last):
+  File "E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\master_script.py", line 313, in <module>
+    main()
+  File "E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\master_script.py", line 275, in main
+    report = construct_report(final_decision, intelligence_count) 
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\master_script.py", line 64, in construct_report
+    f"\U0001f4a1 ³Ì²×±¡ºü: {decision['sentiment_score']:.2f} ({"§Q¦h" if decision['sentiment_score'] > 0 else "§QªÅ" if decision['sentiment_score'] < 0 else "¤¤©Ê"})\n\n"
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: unsupported format string passed to NoneType.__format__
+E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\core\crawler.py:55: SyntaxWarning: invalid escape sequence '\('
+  items = soup.select('ul > li.Py\(14px\)')
+E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\core\analyzer.py:3: FutureWarning: 
+
+All support for the `google.generativeai` package has ended. It will no longer be receiving 
+updates or bug fixes. Please switch to the `google.genai` package as soon as possible.
+See README for more details:
+
+https://github.com/google-gemini/deprecated-generative-ai-python/blob/main/README.md
+
+  import google.generativeai as genai
+Traceback (most recent call last):
+  File "E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\master_script.py", line 313, in <module>
+    main()
+  File "E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\master_script.py", line 275, in main
+    report = construct_report(final_decision, intelligence_count) 
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\master_script.py", line 64, in construct_report
+    f"\U0001f4a1 ³Ì²×±¡ºü: {decision['sentiment_score']:.2f} ({"§Q¦h" if decision['sentiment_score'] > 0 else "§QªÅ" if decision['sentiment_score'] < 0 else "¤¤©Ê"})\n\n"
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: unsupported format string passed to NoneType.__format__
+E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\core\analyzer.py:3: FutureWarning: 
+
+All support for the `google.generativeai` package has ended. It will no longer be receiving 
+updates or bug fixes. Please switch to the `google.genai` package as soon as possible.
+See README for more details:
+
+https://github.com/google-gemini/deprecated-generative-ai-python/blob/main/README.md
+
+  import google.generativeai as genai
+E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\core\crawler.py:65: SyntaxWarning: invalid escape sequence '\('
+  items = soup.select('ul > li.Py\(14px\)')
+E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\core\analyzer.py:3: FutureWarning: 
+
+All support for the `google.generativeai` package has ended. It will no longer be receiving 
+updates or bug fixes. Please switch to the `google.genai` package as soon as possible.
+See README for more details:
+
+https://github.com/google-gemini/deprecated-generative-ai-python/blob/main/README.md
+
+  import google.generativeai as genai
+E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\core\crawler.py:70: SyntaxWarning: invalid escape sequence '\('
+  items = soup.select('ul > li.Py\(14px\)')
+E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\core\analyzer.py:3: FutureWarning: 
+
+All support for the `google.generativeai` package has ended. It will no longer be receiving 
+updates or bug fixes. Please switch to the `google.genai` package as soon as possible.
+See README for more details:
+
+https://github.com/google-gemini/deprecated-generative-ai-python/blob/main/README.md
+
+  import google.generativeai as genai
+E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\core\analyzer.py:3: FutureWarning: 
+
+All support for the `google.generativeai` package has ended. It will no longer be receiving 
+updates or bug fixes. Please switch to the `google.genai` package as soon as possible.
+See README for more details:
+
+https://github.com/google-gemini/deprecated-generative-ai-python/blob/main/README.md
+
+  import google.generativeai as genai
+E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\core\analyzer.py:3: FutureWarning: 
+
+All support for the `google.generativeai` package has ended. It will no longer be receiving 
+updates or bug fixes. Please switch to the `google.genai` package as soon as possible.
+See README for more details:
+
+https://github.com/google-gemini/deprecated-generative-ai-python/blob/main/README.md
+
+  import google.generativeai as genai
+E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\core\analyzer.py:3: FutureWarning: 
+
+All support for the `google.generativeai` package has ended. It will no longer be receiving 
+updates or bug fixes. Please switch to the `google.genai` package as soon as possible.
+See README for more details:
+
+https://github.com/google-gemini/deprecated-generative-ai-python/blob/main/README.md
+
+  import google.generativeai as genai
+Traceback (most recent call last):
+  File "E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\master_script.py", line 317, in <module>
+    main()
+  File "E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\master_script.py", line 279, in main
+    report = construct_report(final_decision, intelligence_count) 
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\master_script.py", line 64, in construct_report
+    f"\U0001f4a1 ³Ì²×±¡ºü: {decision['sentiment_score']:.2f} ({"§Q¦h" if decision['sentiment_score'] > 0 else "§QªÅ" if decision['sentiment_score'] < 0 else "¤¤©Ê"})\n\n"
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: unsupported format string passed to NoneType.__format__
+E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\core\analyzer.py:3: FutureWarning: 
+
+All support for the `google.generativeai` package has ended. It will no longer be receiving 
+updates or bug fixes. Please switch to the `google.genai` package as soon as possible.
+See README for more details:
+
+https://github.com/google-gemini/deprecated-generative-ai-python/blob/main/README.md
+
+  import google.generativeai as genai
+Traceback (most recent call last):
+  File "E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\master_script.py", line 317, in <module>
+    main()
+  File "E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\master_script.py", line 279, in main
+    report = construct_report(final_decision, intelligence_count) 
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\master_script.py", line 64, in construct_report
+    f"\U0001f4a1 ³Ì²×±¡ºü: {decision['sentiment_score']:.2f} ({"§Q¦h" if decision['sentiment_score'] > 0 else "§QªÅ" if decision['sentiment_score'] < 0 else "¤¤©Ê"})\n\n"
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: unsupported format string passed to NoneType.__format__
+E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\core\crawler.py:71: SyntaxWarning: invalid escape sequence '\('
+  items = soup.select('li.Py\(14px\)') or soup.select('.news-item') or soup.select('div[data-test="news-list"] a')
+E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\core\analyzer.py:3: FutureWarning: 
+
+All support for the `google.generativeai` package has ended. It will no longer be receiving 
+updates or bug fixes. Please switch to the `google.genai` package as soon as possible.
+See README for more details:
+
+https://github.com/google-gemini/deprecated-generative-ai-python/blob/main/README.md
+
+  import google.generativeai as genai
+E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\core\analyzer.py:3: FutureWarning: 
+
+All support for the `google.generativeai` package has ended. It will no longer be receiving 
+updates or bug fixes. Please switch to the `google.genai` package as soon as possible.
+See README for more details:
+
+https://github.com/google-gemini/deprecated-generative-ai-python/blob/main/README.md
+
+  import google.generativeai as genai
+Traceback (most recent call last):
+  File "E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\master_script.py", line 324, in <module>
+    main()
+  File "E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\master_script.py", line 286, in main
+    report = construct_report(final_decision, intelligence_count) 
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\master_script.py", line 64, in construct_report
+    f"\U0001f4a1 ³Ì²×±¡ºü: {decision['sentiment_score']:.2f} ({"§Q¦h" if decision['sentiment_score'] > 0 else "§QªÅ" if decision['sentiment_score'] < 0 else "¤¤©Ê"})\n\n"
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: unsupported format string passed to NoneType.__format__
+E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\core\crawler.py:70: SyntaxWarning: invalid escape sequence '\('
+  items = soup.select('ul > li.Py\(14px\)')
+E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\core\analyzer.py:3: FutureWarning: 
+
+All support for the `google.generativeai` package has ended. It will no longer be receiving 
+updates or bug fixes. Please switch to the `google.genai` package as soon as possible.
+See README for more details:
+
+https://github.com/google-gemini/deprecated-generative-ai-python/blob/main/README.md
+
+  import google.generativeai as genai
+Traceback (most recent call last):
+  File "E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\master_script.py", line 324, in <module>
+    main()
+  File "E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\master_script.py", line 286, in main
+    report = construct_report(final_decision, intelligence_count) 
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\master_script.py", line 64, in construct_report
+    f"\U0001f4a1 ³Ì²×±¡ºü: {decision['sentiment_score']:.2f} ({"§Q¦h" if decision['sentiment_score'] > 0 else "§QªÅ" if decision['sentiment_score'] < 0 else "¤¤©Ê"})\n\n"
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: unsupported format string passed to NoneType.__format__
+E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\core\analyzer.py:3: FutureWarning: 
+
+All support for the `google.generativeai` package has ended. It will no longer be receiving 
+updates or bug fixes. Please switch to the `google.genai` package as soon as possible.
+See README for more details:
+
+https://github.com/google-gemini/deprecated-generative-ai-python/blob/main/README.md
+
+  import google.generativeai as genai
+Traceback (most recent call last):
+  File "E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\master_script.py", line 324, in <module>
+    main()
+  File "E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\master_script.py", line 286, in main
+    report = construct_report(final_decision, intelligence_count) 
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\master_script.py", line 64, in construct_report
+    f"ðŸ’¡ æœ€çµ‚æƒ…ç·’: {decision['sentiment_score']:.2f} ({"åˆ©å¤š" if decision['sentiment_score'] > 0 else "åˆ©ç©º" if decision['sentiment_score'] < 0 else "ä¸­æ€§"})\n\n"
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: unsupported format string passed to NoneType.__format__
+E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\core\analyzer.py:3: FutureWarning: 
+
+All support for the `google.generativeai` package has ended. It will no longer be receiving 
+updates or bug fixes. Please switch to the `google.genai` package as soon as possible.
+See README for more details:
+
+https://github.com/google-gemini/deprecated-generative-ai-python/blob/main/README.md
+
+  import google.generativeai as genai
+E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\core\analyzer.py:3: FutureWarning: 
+
+All support for the `google.generativeai` package has ended. It will no longer be receiving 
+updates or bug fixes. Please switch to the `google.genai` package as soon as possible.
+See README for more details:
+
+https://github.com/google-gemini/deprecated-generative-ai-python/blob/main/README.md
+
+  import google.generativeai as genai
+Traceback (most recent call last):
+  File "E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\master_script.py", line 324, in <module>
+    main()
+  File "E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\master_script.py", line 286, in main
+    report = construct_report(final_decision, intelligence_count) 
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\master_script.py", line 64, in construct_report
+    f"ðŸ’¡ æœ€çµ‚æƒ…ç·’: {decision['sentiment_score']:.2f} ({"åˆ©å¤š" if decision['sentiment_score'] > 0 else "åˆ©ç©º" if decision['sentiment_score'] < 0 else "ä¸­æ€§"})\n\n"
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: unsupported format string passed to NoneType.__format__
+usage: master_script.py [-h] [--port PORT]
+                        [--preferred-provider {auto,gemini,nvidia,manus}]
+master_script.py: error: argument --preferred-provider: invalid choice: 'rule' (choose from 'auto', 'gemini', 'nvidia', 'manus')
+usage: master_script.py [-h] [--port PORT]
+                        [--preferred-provider {auto,gemini,nvidia,manus}]
+master_script.py: error: argument --preferred-provider: invalid choice: 'rule' (choose from 'auto', 'gemini', 'nvidia', 'manus')
+usage: master_script.py [-h] [--port PORT]
+                        [--preferred-provider {auto,gemini,nvidia,manus}]
+master_script.py: error: argument --preferred-provider: invalid choice: 'rule' (choose from 'auto', 'gemini', 'nvidia', 'manus')
+usage: master_script.py [-h] [--port PORT]
+                        [--preferred-provider {auto,gemini,nvidia,manus}]
+master_script.py: error: argument --preferred-provider: invalid choice: 'rule' (choose from 'auto', 'gemini', 'nvidia', 'manus')

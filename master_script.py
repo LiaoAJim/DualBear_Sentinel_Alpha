@@ -6,10 +6,12 @@ from datetime import datetime
 from dotenv import load_dotenv
 
 # --- [關鍵修復]：從 core 模組導入所有需要的特工與腦部 ---
+from core.crawler import DataScout
 from core.analyzer import SentimentAnalyzer
 from core.scout import PttStockScout # 修正導入路徑
 from core.anue_scout import AnueScout # 導入 鉅亨特工
 from core.sentinel import SentinelAlpha # 導入 哨兵策略精算師 (L11)
+from core.quant_scout import QuantSentimentScout # 導入 籌碼情報員
 
 # --- [關鍵定義]：在此檔案中定義 LineNotifier 類別，或從核心導入 ---
 # (為了讓你能直接執行，我將我們先前設計的 LineNotifier 代碼直接放在這裡，
@@ -40,14 +42,14 @@ class LineNotifier:
         try:
             response = requests.post(self.api_url, headers=self.headers, data=json.dumps(data))
             if response.status_code == 200:
-                print("✅ LINE 訊息發送成功！")
+                print("[OK] LINE 訊息發送成功！")
                 return True
             else:
-                print(f"❌ LINE 訊息發送失敗，狀態碼: {response.status_code}")
+                print(f"[FAIL] LINE 訊息發送失敗，狀態碼: {response.status_code}")
                 print(f"回應內容: {response.text}")
                 return False
         except Exception as e:
-            print(f"❌ 傳送過程發生錯誤：{e}")
+            print(f"[ERROR] 傳送過程發生錯誤：{e}")
             return False
 
 # --- [優化]：將報告建構函數搬到外部，並優化時間處理 ---
@@ -55,11 +57,21 @@ def construct_report(decision, intelligence_count):
     now = datetime.now().strftime("%Y-%m-%d %H:%M")
     
     if decision:
+        sentiment_score = decision.get('sentiment_score')
+        
+        # 安全處理 None 的 sentiment_score
+        if sentiment_score is not None:
+            score_text = f"{sentiment_score:.2f}"
+            sentiment_label = "利多" if sentiment_score > 0 else "利空" if sentiment_score < 0 else "中性"
+        else:
+            score_text = "N/A"
+            sentiment_label = "分析失敗"
+        
         return (
             f"📊 DualBear 今日戰略報告\n\n"
             f"🕒 時間: {now}\n"
             f"📡 偵察情報數: {intelligence_count} 則\n"
-            f"💡 最終情緒: {decision['sentiment_score']:.2f} ({"利多" if decision['sentiment_score'] > 0 else "利空" if decision['sentiment_score'] < 0 else "中性"})\n\n"
+            f"💡 最終情緒: {score_text} ({sentiment_label})\n\n"
             f"🛡️ 建議操作: 【{decision.get('action', 'N/A')}】\n"
             f"📝 理由: {decision.get('recon_notes', 'N/A')}\n\n"
             f"💡 指揮官，規律覺醒，獲利自由！"
@@ -88,9 +100,16 @@ class DashboardNotifier:
     def status(self, step):
         self.notify("status", {"step": step})
 
+    def send_analysis_stats(self, total, success, failure):
+        self.notify("analysis_stats", {
+            "total": total,
+            "success": success,
+            "failure": failure
+        })
+
 def get_test_news():
     """當爬蟲模組失敗時的備用測試數據。返回一個空列表或模擬數據。"""
-    print("⚠️ 使用測試數據。")
+    print("[WARN] 使用測試數據。")
     return [] 
 
 def main():
@@ -98,116 +117,196 @@ def main():
     load_dotenv()
     line_token = os.getenv("LINE_CHANNEL_ACCESS_TOKEN")
     user_id = os.getenv("YOUR_USER_ID") # 從 .env 讀取正確的 User ID
-    google_api_key = os.getenv("GOOGLE_API_KEY") # 從 .env 讀取正確的 API Key
-    
+    google_api_key = os.getenv("GOOGLE_API_KEY")
+    manus_api_key  = os.getenv("Manus_API_KEY")
+    nvidia_api_key = os.getenv("NVIDIA_NIM_API_KEY")
+
+    # 條列所有有效 Key，預設優先順序：NVIDIA > Manus > Gemini (Gemini 排最後)
+    api_keys = [k for k in [nvidia_api_key, manus_api_key, google_api_key] if k]
+
     import argparse
     parser = argparse.ArgumentParser(description="DualBear Sentinel Alpha")
     parser.add_argument("--port", type=int, default=8005, help="Dashboard server port")
+    parser.add_argument("--preferred-provider", type=str, default="auto",
+                        choices=["auto", "gemini", "nvidia", "manus", "rule"],
+                        help="指定優先使用的 AI 引擎 (rule=規則引擎)")
     args = parser.parse_args()
-
+    
+    # 儲存使用者選擇的引擎
+    preferred_engine = args.preferred_provider
+    use_rule_only = (preferred_engine == "rule")
+    
+    # 🔍 調試：確保傳入的值正確
+    print(f"[DEBUG] 收到的 preferred_provider: {preferred_engine}")
+    print(f"[DEBUG] use_rule_only: {use_rule_only}")
+    print(f"[DEBUG] api_keys count: {len(api_keys)}")
+    
     db_notifier = DashboardNotifier(port=args.port) # 初始化儀表板通知器
     db_notifier.status("idle")
     db_notifier.log("🚀 DualBear Sentinel Alpha 系統啟動...", "system")
-
+    db_notifier.log(f"📋 引擎模式: {preferred_engine}", "system")
+    
+    # 如果選擇規則引擎，則不需要 API Key
     if not line_token or not user_id:
         db_notifier.log("找不到 LINE_CHANNEL_ACCESS_TOKEN 或 YOUR_USER_ID", "error")
-        print("❌ 錯誤：找不到 LINE_CHANNEL_ACCESS_TOKEN 或 YOUR_USER_ID。")
+        print("[ERROR] 錯誤：找不到 LINE_CHANNEL_ACCESS_TOKEN 或 YOUR_USER_ID。")
         return
-    if not google_api_key:
-        db_notifier.log("找不到 GOOGLE_API_KEY", "error")
-        print("❌ 錯誤：找不到 GOOGLE_API_KEY。")
-        return
+    if not api_keys and not use_rule_only:
+        db_notifier.log("找不到任何有效的 API Key (GOOGLE_API_KEY / NVIDIA_NIM_API_KEY)", "warning")
+        print("[WARN] 警告：找不到 API Key，將只使用規則引擎。")
+        use_rule_only = True
+    
+    if use_rule_only:
+        db_notifier.log("📋 使用規則引擎模式 (本地分析，零成本)", "system")
+        print("[INFO] 使用規則引擎模式。")
+    else:
+        print(f"[INFO] 已載入 {len(api_keys)} 組 API Key，支援自動輪換。")
 
     notifier = LineNotifier(line_token, user_id)
     
-    # --- ⚔️ PHASE: Real Scouting ---
+    # --- ⚔️ PHASE: Wide Recon (廣域偵察) ---
     db_notifier.status("scouting")
-    db_notifier.log("📡 正在部署情報網：鉅亨網 & PTT Stock...", "scout")
-    print("🚀 DualBear Sentinel Alpha 啟動真實偵察任務...")
+    db_notifier.log("📡 啟動 DualBear 廣域偵察網：對接 TWSE、Yahoo、UDN、PTT & 鉅亨...", "scout")
+    print("[START] DualBear Sentinel Alpha 啟動「官網級」真實偵察任務...")
+    
+    all_intelligence = []
+    quant_data = None
+    
+    # --- [全域統計計數器]：在所有 try 區塊之前初始化，確保一定可以存到歷史 ---
+    total_count = 0
+    success_count = 0
+    failure_count = 0
+    total_score = 0
     
     try:
-        scouts = [AnueScout(), PttStockScout()]
+        # (A) 輿情採集：廣域偵察
+        from core.crawler import DataScout
+        news_agent = DataScout()
+        all_intelligence = news_agent.fetch_all_news()
         
-        all_intelligence = []
-        for scout in scouts:
-            scout_name = scout.__class__.__name__
-            db_notifier.log(f"🕵️ 特工 {scout_name} 開始作業...", "scout")
-            try:
-                intelligence_list = []
-                if hasattr(scout, 'scrape_latest_news'):
-                    intelligence_list = scout.scrape_latest_news(limit=10)
-                elif hasattr(scout, 'scrape_latest_posts'):
-                    intelligence_list = scout.scrape_latest_posts(pages=2, min_pushes=15)
-                
-                db_notifier.log(f"✅ {scout_name} 蒐集到 {len(intelligence_list)} 則情報", "success")
-                
-                # 即時推送到儀表板
-                for item in intelligence_list:
-                    db_notifier.notify("intelligence", {"content": item})
-                
-                all_intelligence.extend(intelligence_list)
-            except Exception as e:
-                db_notifier.log(f"⚠️ {scout_name} 偵察失敗: {str(e)}", "warning")
-                print(f"⚠️ 偵察特工偵察失敗：{e}")
-            
-        intelligence_count = len(all_intelligence)
-        db_notifier.log(f"📊 總計蒐集到 {intelligence_count} 則市場情報。", "info")
-        print(f"✅ 成功蒐集到 {intelligence_count} 則市場情報。")
+        # 📊 來源來源分析
+        sources = {}
+        for item in all_intelligence:
+            src = item.get('source', '其他')
+            sources[src] = sources.get(src, 0) + 1
+        src_info = ", ".join([f"{k}({v})" for k,v in sources.items()])
+        
+        db_notifier.log(f"✅ 廣域採集完畢：共 {len(all_intelligence)} 則 ({src_info})", "success")
+        
+        # 即時更新至儀表板
+        for item in all_intelligence:
+            db_notifier.notify("intelligence", {"content": item})
+        
+        # (B) 籌碼採集：真理偵察
+        db_notifier.log("🕵️ 籌碼情報員開始採集官網量化指標 (VIX/融資/散戶)...", "scout")
+        quant_agent = QuantSentimentScout()
+        quant_data = quant_agent.fetch_all_indicators()
+        db_notifier.notify("quant_data", quant_data) 
+        
+        # (C) VIX 恐慌指數偵測
+        db_notifier.log("📊 正在取得美國 VIX 恐慌指數...", "scout")
+        try:
+            from core.vix_scout import VIXScout
+            vix_scout = VIXScout()
+            vix_data = vix_scout.fetch()
+            if vix_data.get("status") == "success":
+                db_notifier.notify("vix_data", vix_data)
+                db_notifier.log(f"📈 VIX: {vix_data.get('value', 'N/A')} ({vix_data.get('interpretation', 'N/A')})", "scout")
+            else:
+                db_notifier.log(f"⚠️ VIX 取得失敗: {vix_data.get('message', '未知錯誤')}", "warning")
+        except Exception as e:
+            db_notifier.log(f"⚠️ VIX 模組載入失敗: {str(e)}", "warning")
+        
     except Exception as e:
         db_notifier.log(f"❌ 偵察階段發生嚴重錯誤: {str(e)}", "error")
-        all_intelligence = []
-        intelligence_count = 0
+        print(f"[WARN] 偵察失敗：{e}")
 
+    intelligence_count = len(all_intelligence)
     if not all_intelligence:
         db_notifier.log("今日未抓取到任何有效市場情報，任務終止。", "warning")
         db_notifier.status("idle")
-        notifier.send_text("⚠️ 今日偵察報告: 未抓取到有效情報。請檢查爬蟲模組。")
+        notifier.send_text("⚠️ 今日偵察報告: 未抓取到有效情報。請檢查官網連線。")
         return
 
     # --- Block 2: AI Analysis & Sentinel Decision ---
     db_notifier.status("analyzing")
-    db_notifier.log("🧠 正在呼叫 Gemini AI 大腦進行情緒判讀...", "ai")
+    db_notifier.log(f"🧠 正在呼叫 DualBear AI 矩陣 (已載入 {len(api_keys)} 組大腦) 进行情緒判讀...", "ai")
     
     try:
-        analyzer = SentimentAnalyzer(google_api_key)
+        from core.analyzer import ERR_RATE_LIMIT, ERR_ALL_KEYS_FAIL, ERR_SAFETY_FILTER, ERR_PARSE_FAIL
+        analyzer = SentimentAnalyzer(api_keys, preferred_provider=preferred_engine)
         
-        total_score = 0
-        analyzed_count = 0
-        sentiment_flavors = []
-
+        # 初始化分析統計（現在這些在全域作用域，不需要重複定義）
+        total_count = len(all_intelligence)
+        
         for i, intelligence in enumerate(all_intelligence):
             try:
+                # 🕯️ 在分析前先取得下一位預計執行的大腦（僅供顯示）
+                p_hint = analyzer.providers[analyzer.current_provider_index].key_hint
+
                 # 通知儀表板開始分析
                 db_notifier.notify("analysis_start", {"title": intelligence['title']})
-                db_notifier.log(f"[{i+1}/{intelligence_count}] 分析中: {intelligence['title'][:30]}...", "ai")
                 
-                sentiment = analyzer.analyze(intelligence['title'])
+                src = intelligence.get('source', '未知')
+                db_notifier.log(f"[{i+1}/{total_count}] [{src}] AI 特工連線中...", "ai")
                 
-                if isinstance(sentiment, dict):
-                    score = sentiment.get('score', 0)
-                    flavor = sentiment.get('flavor', '中性')
-                else: 
-                    score = sentiment.score
-                    flavor = sentiment.flavor
-
-                total_score += score
-                analyzed_count += 1
-                db_notifier.log(f"   ∟ 分數: {score} ({flavor})", "info")
+                result = analyzer.analyze(intelligence['title'])
+                ai_name = result.get('provider', p_hint)
+                
+                if result and not result.get('error') and 'score' in result:
+                    # 分析成功
+                    score = result['score']
+                    flavor = result.get('flavor', '中性')
+                    total_score += score
+                    success_count += 1
+                    db_notifier.log(f"   L [{ai_name}] 判定: {score} ({flavor})", "info")
+                elif result and result.get('error'):
+                    # 分析失敗：根據錯誤類型顯示不同訊息
+                    failure_count += 1
+                    err_type = result.get('error_type', 'UNKNOWN')
+                    err_msg  = result.get('msg', '')
+                    
+                    if err_type == ERR_ALL_KEYS_FAIL:
+                        db_notifier.log(f"   L [!] AI 全滅 ({ai_name})，跳過此條。", "error")
+                    elif err_type == ERR_RATE_LIMIT:
+                        db_notifier.log(f"   L [!] {ai_name} 配額耗盡，正在切換...", "warning")
+                    elif err_type == ERR_SAFETY_FILTER:
+                        db_notifier.log(f"   L [!] {ai_name} 被安全過濾器攔截。", "warning")
+                    elif err_type == ERR_PARSE_FAIL:
+                        db_notifier.log(f"   L [!] {ai_name} 回傳格式異常，正在重試...", "warning")
+                    else:
+                        db_notifier.log(f"   L [!] {ai_name} 失敗 [{err_type}]: {err_msg[:50]}", "warning")
+                    
+                    # 💡 修正：即使全滅，也不要中斷「整個」程序，跳過這條去分析下一條
+                    continue
+                else:
+                    failure_count += 1
+                    db_notifier.log(f"   L AI 回傳為空或格式未知", "warning")
+                
+                # 即時更新統計數據至儀表板
+                db_notifier.send_analysis_stats(total_count, success_count, failure_count)
+                
             except Exception as e:
-                db_notifier.log(f"⚠️ 分析失敗: {str(e)}", "warning")
+                failure_count += 1
+                db_notifier.send_analysis_stats(total_count, success_count, failure_count)
+                db_notifier.log(f"[!] 迴圈分析發生異常: {str(e)}", "warning")
 
         # 精算最終的情緒分數
-        if analyzed_count > 0:
-            final_sentiment_score = total_score / analyzed_count
+        if success_count > 0:
+            final_sentiment_score = total_score / success_count
         else:
-            final_sentiment_score = 0
+            # 🚨 重要：如果全數失敗，設為 None 讓精算師知道要顯示「分析失敗」
+            final_sentiment_score = None
         
-        db_notifier.log(f"✅ AI 集體判讀完成。最終情緒指數: {final_sentiment_score:.2f}", "success")
+        if final_sentiment_score is not None:
+            db_notifier.log(f"✅ AI 集體判讀完成。最終情緒指數: {final_sentiment_score:.2f}", "success")
+        else:
+            db_notifier.log("❌ AI 全數分析失敗，無法計算情緒指數。", "error")
 
         # --- [關鍵聯動]：策略精算師 ---
         db_notifier.log("🛡️ 正在計算最終策略佈置...", "system")
         sentinel = SentinelAlpha()
-        decision = sentinel.calculate_position(final_sentiment_score)
+        decision = sentinel.calculate_position(final_sentiment_score, quant_data=quant_data)
         
         decision['sentiment_score'] = final_sentiment_score
         
@@ -242,13 +341,26 @@ def main():
         if not os.path.exists(history_dir):
             os.makedirs(history_dir)
             
-        today_file = os.path.join(history_dir, f"{datetime.now().strftime('%Y-%m-%d')}.json")
+        # 🚀 檔名升級：加入時間戳避免覆蓋
+        timestamp = datetime.now().strftime('%Y-%m-%d_%H%M%S')
+        today_file = os.path.join(history_dir, f"{timestamp}.json")
+        
+        # 取得分析統計（現在全域可見，不再需要 try/except）
+        stats_total = total_count
+        stats_success = success_count
+        stats_failure = failure_count
         
         history_data = {
             "date": datetime.now().strftime("%Y-%m-%d %H:%M"),
             "intelligence_count": intelligence_count,
+            "analysis_stats": {
+                "total": stats_total,
+                "success": stats_success,
+                "failure": stats_failure
+            },
             "intelligence": all_intelligence,
-            "decision": final_decision
+            "decision": final_decision,
+            "quant_data": quant_data  # 加入量化數據（包含 VIX、融資、散戶比）
         }
         
         with open(today_file, "w", encoding="utf-8") as f:

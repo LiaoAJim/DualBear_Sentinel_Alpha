@@ -26,12 +26,12 @@ class AnueScout:
         :return: 包含標題、連結、來源、日期的標準化情報列表
         """
         recon_results = []
-        print(f"📡 鉅亨偵察員：開始偵察鉅亨網最新台股新聞 (預計抓取 {limit} 則)...")
+        print(f"[START] 鉅亨偵察員：開始偵察鉅亨網最新台股新聞 (預計抓取 {limit} 則)...")
 
         try:
             response = requests.get(self.market_url, headers=self.headers, timeout=10)
             if response.status_code != 200:
-                print(f"⚠️ 偵察失敗：無法存取鉅亨網 (狀態碼: {response.status_code})")
+                print(f"[FAIL] 偵察失敗：無法存取鉅亨網 (狀態碼: {response.status_code})")
                 return []
 
             # 使用 lxml 解析庫 (速度較快，若未安裝請 pip install lxml)
@@ -46,7 +46,7 @@ class AnueScout:
                 news_items = soup.find_all('a', href=lambda x: x and '/news/id/' in x)
 
             if not news_items:
-                print("⚠️ 警告：無法在頁面上找到新聞項目。這通常意味著鉅亨網修改了網頁結構。")
+                print("[WARN] 警告：無法在頁面上找到新聞項目。這通常意味著鉅亨網修改了網頁結構。")
                 return []
 
             count = 0
@@ -96,9 +96,9 @@ class AnueScout:
                 count += 1
 
         except Exception as e:
-            print(f"❌ 鉅亨偵察過程中發生嚴重錯誤：{e}")
+            print(f"[ERROR] 鲅亨偵察過程中發生嚴重錯誤：{e}")
 
-        print(f"✅ 鉅亨偵察完成！成功抓取 {len(recon_results)} 則法人端情報。")
+        print(f"[OK] 鲅亨偵察完成！成功抓取 {len(recon_results)} 則法人端情報。")
         return recon_results
 
 if __name__ == "__main__":

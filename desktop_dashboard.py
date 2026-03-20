@@ -33,12 +33,32 @@ class AppTheme:
 class SentinelApp(QMainWindow):
     def __init__(self):
         super().__init__()
-        # 啟動背景伺服器 (選用 8005 避免與 Nanobot 衝突)
-        self.port = 8005
+        # --- 單實例檢查 (Single Instance Check) ---
+        if self.check_existing_instance():
+            sys.exit(0)
+
+        # 啟動背景伺服器 (選用 8001 避免與 Nanobot 衝突)
+        self.port = 8001
         self.start_server()
         
         self.initUI()
         self.old_pos = None
+        self.is_maximized = False
+        self.resizing = False
+        self.resize_edge = None
+        self.MARGIN = 10 
+        self.setMouseTracking(True)
+
+    def check_existing_instance(self):
+        """檢查是否已有相同標題的視窗正在運行"""
+        window_title = "DualBear Sentinel Desktop"
+        hwnd = ctypes.windll.user32.FindWindowW(None, window_title)
+        if hwnd:
+            # 如果找到舊視窗，將其還原並提到最前方
+            ctypes.windll.user32.ShowWindow(hwnd, 9) # SW_RESTORE
+            ctypes.windll.user32.SetForegroundWindow(hwnd)
+            return True
+        return False
 
     def start_server(self):
         # 啟動背景伺服器 (不顯示黑框)
@@ -48,21 +68,29 @@ class SentinelApp(QMainWindow):
         # 確保在正確目錄下啟動
         cwd = os.path.dirname(os.path.abspath(__file__))
         
+        # 確保日誌目錄存在
+        server_log_dir = os.path.join(cwd, "logs")
+        if not os.path.exists(server_log_dir):
+            os.makedirs(server_log_dir)
+            
         def run_server():
-            # 使用 pythonw 避免彈出黑色終端機
-            # 如果是開發中，改回 python 方便除錯
-            subprocess.Popen(
-                ["python", "dashboard_server.py", "--port", str(self.port)],
-                cwd=cwd,
-                startupinfo=startupinfo
-            )
+            # 使用 sys.executable 確保與主進程使用同一個 Python 環境
+            # 將錯誤輸出記錄到 logs/server_error.log 以供除錯
+            with open(os.path.join(server_log_dir, "server_error.log"), "a", encoding="utf-8") as err_file:
+                subprocess.Popen(
+                    [sys.executable, "dashboard_server.py", "--port", str(self.port)],
+                    cwd=cwd,
+                    stdout=subprocess.DEVNULL,
+                    stderr=err_file, # 捕捉伺服器崩潰原因
+                    startupinfo=startupinfo
+                )
         
         threading.Thread(target=run_server, daemon=True).start()
 
     def initUI(self):
         self.setWindowTitle("DualBear Sentinel Desktop")
         self.setWindowIcon(QIcon("icon.ico"))
-        self.setFixedSize(1100, 850)
+        self.setFixedSize(1440, 780)
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
 
@@ -110,9 +138,10 @@ class SentinelApp(QMainWindow):
 
         # 控制按鈕
         self.min_btn = QPushButton("—")
+        self.max_btn = QPushButton("▢")
         self.close_btn = QPushButton("✕")
         
-        for btn in [self.min_btn, self.close_btn]:
+        for btn in [self.min_btn, self.max_btn, self.close_btn]:
             btn.setFixedSize(40, 40)
             btn.setCursor(Qt.CursorShape.PointingHandCursor)
             btn.setStyleSheet("""
@@ -124,24 +153,87 @@ class SentinelApp(QMainWindow):
             header_layout.addWidget(btn)
 
         self.min_btn.clicked.connect(self.showMinimized)
+        self.max_btn.clicked.connect(self.toggle_maximize)
         self.close_btn.clicked.connect(self.close)
         self.close_btn.setStyleSheet(self.close_btn.styleSheet() + "QPushButton:hover { color: #ff0055; }")
 
         self.layout.addWidget(self.header)
 
-    # 視窗拖動邏輯
+    def toggle_maximize(self):
+        if self.is_maximized:
+            self.showNormal()
+            self.max_btn.setText("▢")
+        else:
+            self.showMaximized()
+            self.max_btn.setText("❐")
+        self.is_maximized = not self.is_maximized
+
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
-            self.old_pos = event.globalPosition().toPoint()
+            edge = self.get_edge(event.pos())
+            if edge:
+                self.resizing = True
+                self.resize_edge = edge
+            elif self.header.underMouse():
+                self.old_pos = event.globalPosition().toPoint()
+        super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event):
-        if self.old_pos:
+        pos = event.pos()
+        if not self.resizing:
+            edge = self.get_edge(pos)
+            if edge == "left" or edge == "right":
+                self.setCursor(Qt.CursorShape.SizeHorCursor)
+            elif edge == "top" or edge == "bottom":
+                self.setCursor(Qt.CursorShape.SizeVerCursor)
+            elif edge in ["top-left", "bottom-right"]:
+                self.setCursor(Qt.CursorShape.SizeFDiagCursor)
+            elif edge in ["top-right", "bottom-left"]:
+                self.setCursor(Qt.CursorShape.SizeBDiagCursor)
+            else:
+                self.setCursor(Qt.CursorShape.ArrowCursor)
+
+        if self.resizing:
+            self.handle_resize(event.globalPosition().toPoint())
+        elif self.old_pos:
             delta = QPoint(event.globalPosition().toPoint() - self.old_pos)
             self.move(self.x() + delta.x(), self.y() + delta.y())
             self.old_pos = event.globalPosition().toPoint()
+        super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event):
         self.old_pos = None
+        self.resizing = False
+        self.resize_edge = None
+        super().mouseReleaseEvent(event)
+
+    def get_edge(self, pos):
+        w, h = self.width(), self.height()
+        x, y = pos.x(), pos.y()
+        m = self.MARGIN
+        if x < m and y < m: return "top-left"
+        if x > w - m and y > h - m: return "bottom-right"
+        if x > w - m and y < m: return "top-right"
+        if x < m and y > h - m: return "bottom-left"
+        if x < m: return "left"
+        if x > w - m: return "right"
+        if y < m: return "top"
+        if y > h - m: return "bottom"
+        return None
+
+    def handle_resize(self, global_pos):
+        geom = self.geometry()
+        if "left" in self.resize_edge:
+            geom.setLeft(global_pos.x())
+        if "right" in self.resize_edge:
+            geom.setRight(global_pos.x())
+        if "top" in self.resize_edge:
+            geom.setTop(global_pos.y())
+        if "bottom" in self.resize_edge:
+            geom.setBottom(global_pos.y())
+        
+        if geom.width() >= self.minimumWidth() and geom.height() >= self.minimumHeight():
+            self.setGeometry(geom)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
