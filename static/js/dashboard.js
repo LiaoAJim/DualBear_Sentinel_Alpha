@@ -79,10 +79,23 @@ document.addEventListener('DOMContentLoaded', () => {
         const sourceName = data.source;
         
         item.innerHTML = `
-            <span class="news-source ${sourceClass}">${sourceName}</span>
+            <div class="news-item-header">
+                <span class="news-source ${sourceClass}">${sourceName}</span>
+                <span class="news-date">${data.date}</span>
+            </div>
             <div class="news-title">${data.title}</div>
+            ${data.author ? `<div class="news-author"><i class="fas fa-user-circle"></i> ${data.author}</div>` : ''}
         `;
         
+        // 增加點擊跳轉功能
+        if (data.link) {
+            item.style.cursor = 'pointer';
+            item.title = "點擊開啟原始網頁";
+            item.onclick = () => {
+                window.open(data.link, '_blank');
+            };
+        }
+
         newsFeed.prepend(item);
         
         // 限制顯示數量
