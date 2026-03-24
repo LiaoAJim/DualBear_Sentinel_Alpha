@@ -20,11 +20,19 @@
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
-body {
+html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
     background-color: var(--bg-dark);
     color: var(--text-main);
-    overflow: hidden;
-    height: 100vh;
+    font-family: 'Inter', 'Noto Sans TC', sans-serif;
+    overflow-x: hidden; /* 🛡️ 強制禁止視窗水平捲動，避免佈局錯位 */
+    overflow-y: hidden;
+}
+
+body {
     display: flex;
     flex-direction: column;
 }
@@ -148,6 +156,46 @@ header {
     border-bottom: 1px solid var(--glass-border);
 }
 
+/* 🛠️ 欄位順序調整按鈕樣式 */
+.stepper-nav-actions {
+    position: absolute;
+    left: 25px;
+    display: flex;
+    gap: 8px;
+}
+
+.stepper-nav-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--glass-border);
+    color: var(--text-dim);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.stepper-nav-btn:hover {
+    background: rgba(0, 210, 255, 0.15);
+    border-color: var(--accent-blue);
+    color: var(--accent-blue);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0, 210, 255, 0.2);
+}
+
+.stepper-nav-btn:active {
+    transform: translateY(0);
+}
+
+.stepper-nav-btn:disabled {
+    opacity: 0.2;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
 .step {
     display: flex;
     flex-direction: column;
@@ -203,12 +251,12 @@ header {
     margin-top: -20px;
 }
 
-/* 📍 旗艦級固定四欄佈局 (1440x780 精悍模式) */
+/* 📍 旗艦級固定五欄佈局 (1440x780 精悍模式) */
 main {
     flex: 1;
     display: grid;
-    /* 強化穩定性：將最小寬度提升並確保 fit-content 展開 */
-    grid-template-columns: repeat(4, minmax(300px, 1fr));
+    /* 五欄最小 350px，確保內容不擁擠 */
+    grid-template-columns: repeat(5, minmax(350px, 1fr));
     width: 100%; 
     gap: 16px;
     padding: 15px 20px;
@@ -229,6 +277,20 @@ main {
     min-width: 0;
     height: 100%;
     will-change: transform; /* ⚡️ 強制獨立渲染層，解決滑動時消失的問題 */
+    cursor: default;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.panel.selectable {
+    cursor: pointer;
+}
+
+.panel.selected {
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 30px rgba(0, 210, 255, 0.2), inset 0 0 15px rgba(0, 210, 255, 0.05);
+    background: rgba(0, 210, 255, 0.03);
+    transform: scale(0.995);
+    z-index: 5;
 }
 
 /* 🔍 邊界縮放條 (Gutter Resizer) */
@@ -422,14 +484,14 @@ main {
 
 .analysis-stats {
     display: flex;
-    gap: 8px;
+    gap: 4px; /* Reduced gap for better fit */
     align-items: center;
 }
 
 .stat-item {
     font-size: 10px;
     font-weight: 700;
-    padding: 2px 8px;
+    padding: 2px 4px; /* Reduced padding for better fit */
     border-radius: 4px;
     background: rgba(255, 255, 255, 0.05);
     color: var(--text-dim);
@@ -1174,4 +1236,28 @@ option {
 
 #custom-context-menu .menu-item:hover i {
     transform: scale(1.2);
+}
+/* 🔍 建議列表樣式 */
+.suggestion-item {
+    padding: 10px 15px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    transition: all 0.2s;
+}
+
+.suggestion-item:hover, .suggestion-item.active {
+    background: rgba(168, 85, 247, 0.2);
+    border-left: 3px solid var(--accent-purple);
+}
+
+.suggestion-item .sym {
+    color: var(--accent-purple);
+    font-weight: bold;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+}
+
+.suggestion-item .name {
+    color: #fff;
+    margin-left: 10px;
+    font-size: 12px;
 }

@@ -6,6 +6,7 @@
     <meta name="color-scheme" content="dark">
     <title>雙熊哨兵戰略儀表板 | DualBear Sentinel</title>
     <link rel="stylesheet" href="/static/css/style.css">
+    <script src="/static/js/stocks_lookup.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
@@ -28,12 +29,17 @@
                 <button id="btn-manual" class="header-btn"><i class="fas fa-book"></i> 系統手冊</button>
                 <button id="btn-run" class="run-btn"><i class="fas fa-play"></i> 立即執行</button>
                 <button id="btn-history" class="header-btn"><i class="fas fa-history"></i> 歷史檔案</button>
-                <button id="btn-backtest" class="header-btn" style="background: rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.3);"><i class="fas fa-chart-line"></i> 回測驗證</button>
             </div>
         </div>
     </header>
 
-    <div class="system-stepper" id="system-stepper">
+    <div class="system-stepper" id="system-stepper" style="position: relative;">
+        <!-- 🛠️ 欄位順序調整按鈕 (靠左對齊) -->
+        <div class="stepper-nav-actions">
+            <button id="btn-order-left" class="stepper-nav-btn" title="向左移動選中欄位"><i class="fas fa-chevron-left"></i></button>
+            <button id="btn-order-right" class="stepper-nav-btn" title="向右移動選中欄位"><i class="fas fa-chevron-right"></i></button>
+        </div>
+
         <div class="step active" id="step-idle">
             <div class="step-icon"><i class="fas fa-power-off"></i></div>
             <div class="step-label">等待啟動</div>
@@ -41,28 +47,28 @@
         <div class="step-line"></div>
         <div class="step" id="step-scouting">
             <div class="step-icon"><i class="fas fa-satellite-dish"></i></div>
-            <div class="step-label">情報偵察</div>
+            <div class="step-label">Step 1 情報偵察</div>
         </div>
         <div class="step-line"></div>
         <div class="step" id="step-analyzing">
             <div class="step-icon"><i class="fas fa-brain"></i></div>
-            <div class="step-label">AI 解析</div>
+            <div class="step-label">Step 2 AI 解析</div>
         </div>
         <div class="step-line"></div>
         <div class="step" id="step-reporting">
             <div class="step-icon"><i class="fas fa-paper-plane"></i></div>
-            <div class="step-label">戰略通報</div>
+            <div class="step-label">Step 3 戰略通報</div>
         </div>
     </div>
 
     <main id="main-grid">
         <!-- 第一欄：情報偵察 -->
-        <section class="panel" id="intelligence-panel">
+        <section class="panel" id="intelligence-panel" style="display: flex; flex-direction: column; overflow: hidden;">
             <div class="panel-header">
-                <h2 class="panel-title"><i class="fas fa-broadcast-tower"></i> 實時偵察情報網</h2>
+                <h2 class="panel-title"><i class="fas fa-broadcast-tower"></i> <span style="color: var(--accent-blue); margin-right: 5px;">Step 1</span> 實時偵察情報網</h2>
                 <span id="news-count" class="count-badge">0 則偵察</span>
             </div>
-            <div class="main-content">
+            <div class="main-content" style="flex: 1; overflow-y: auto;">
                 <div class="feed-content" id="intelligence-feed">
                     <div class="empty-state">
                         <i class="fas fa-search"></i>
@@ -73,16 +79,17 @@
         </section>
 
         <!-- 第二欄：情緒核心 -->
-        <section class="panel" id="sentiment-panel">
+        <section class="panel" id="sentiment-panel" style="display: flex; flex-direction: column; overflow: hidden;">
             <div class="panel-header" style="flex-wrap: nowrap; gap: 8px; align-items: center;">
-                <h2 class="panel-title" style="white-space: nowrap; margin-right: auto;"><i class="fas fa-microchip"></i> AI情緒核心</h2>
-                <div class="analysis-stats" id="analysis-stats-container" style="display: flex; gap: 10px;">
+                <h2 class="panel-title" style="white-space: nowrap; margin-right: auto;"><i class="fas fa-microchip"></i> <span style="color: var(--accent-purple); margin-right: 5px;">Step 2</span> AI情緒核心</h2>
+                <div class="analysis-stats" id="analysis-stats-container" style="display: flex; gap: 6px;">
                     <span class="stat-item" title="總分析數量"><i class="fas fa-list-ol"></i> <span id="stat-total">0</span></span>
                     <span class="stat-item success" title="分析成功"><i class="fas fa-check-circle"></i> <span id="stat-success">0</span></span>
                     <span class="stat-item failure" title="分析失敗"><i class="fas fa-exclamation-triangle"></i> <span id="stat-failure">0</span></span>
                 </div>
             </div>
-            <div class="sentiment-display" style="position: relative;">
+            <div class="scroll-wrapper" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column;">
+                <div class="sentiment-display" style="position: relative; min-height: 0; flex-shrink: 0;">
                 <div class="report-timestamp" id="report-timestamp" style="
                     position: absolute;
                     top: 10px;
@@ -142,19 +149,22 @@
             <div class="log-header">
                 <span><i class="fas fa-terminal"></i> 系統監控日誌</span>
                 <div style="display: flex; gap: 8px;">
-                    <button id="view-full-log" class="clear-btn" style="background: transparent; border: none; margin-right: 5px;"><i class="fas fa-expand-alt"></i> 展開內容</button>
+                    <button id="toggle-sort" class="clear-btn" style="background: transparent; border: none; margin-right: 5px; font-size: 10px;" title="切換排序">
+                        <span id="sort-text">新>舊</span>
+                    </button>
                     <button id="clear-logs" class="clear-btn">清除</button>
                 </div>
             </div>
-            <div class="log-content" id="system-logs"></div>
+            <div class="log-content" id="system-logs" style="overflow-y: visible;"></div>
+            </div>
         </section>
 
         <!-- 第三欄：哨兵決策 -->
-        <section class="panel" id="decision-panel">
+        <section class="panel" id="decision-panel" style="display: flex; flex-direction: column; overflow: hidden;">
             <div class="panel-header">
-                <h2 class="panel-title"><i class="fas fa-chess-knight"></i> 哨兵決策判斷</h2>
+                <h2 class="panel-title"><i class="fas fa-chess-knight"></i> <span style="color: var(--accent-pink); margin-right: 5px;">Step 3</span> 哨兵決策判斷</h2>
             </div>
-            
+            <div style="flex: 1; overflow-y: auto;">
             <div class="decision-card">
                 <div class="decision-label">建議操作</div>
                 <div id="decision-action" class="decision-action">觀望</div>
@@ -186,6 +196,7 @@
                 <p id="decision-notes" class="notes-content" style="font-size: 13px; line-height: 1.6; color: #cbd5e1;">
                     系統持續監控市場脈動中...
                 </p>
+            </div>
             </div>
 
             <!-- 📱 LINE 通訊狀態頁腳 (還原) -->
@@ -237,7 +248,13 @@
                         <span id="leverage2-info" style="font-size: 11px; color: #f59e0b;"></span>
                         <span style="font-size: 14px; font-weight: 700; color: #fff;" id="leverage2-value">$0</span>
                     </div>
-                    <button id="btn-remove-leverage2" onclick="removeLeverage2()" style="margin-top: 6px; width: 100%; padding: 4px; background: transparent; border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 4px; color: #ef4444; font-size: 10px; cursor: pointer;">移除全部</button>
+                    <button onclick="toggleLeverage2List()" id="btn-toggle-leverage2" style="margin-top: 6px; width: 100%; padding: 4px; background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.3); border-radius: 4px; color: #f59e0b; font-size: 10px; cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                        <span><i class="fas fa-bolt"></i> 正2 ETF 清單</span>
+                        <i class="fas fa-chevron-down" id="leverage2-toggle-icon"></i>
+                    </button>
+                    <div id="leverage2-list-mini" style="display: none; margin-top: 6px; max-height: 150px; overflow-y: auto; background: rgba(0,0,0,0.2); border-radius: 6px; padding: 6px;">
+                        <!-- 由 JS 動態產生 -->
+                    </div>
                 </div>
 
                 <div style="margin-top: 15px; padding-top: 15px; border-top: 1px dashed rgba(255,255,255,0.1);">
@@ -269,38 +286,64 @@
                 </div>
             </div>
         </section>
+
+        <!-- 第五欄：回測驗證 -->
+        <section class="panel" id="backtest-panel" style="display: flex; flex-direction: column; overflow: hidden;">
+            <div class="panel-header">
+                <h2 class="panel-title"><i class="fas fa-chart-line" style="color: #10b981;"></i> 規則引擎驗證</h2>
+                <button id="btn-targets-inline" style="
+                    background: rgba(168, 85, 247, 0.15); 
+                    border: 1px solid rgba(168, 85, 247, 0.3);
+                    color: #df99ff;
+                    font-size: 10px;
+                    padding: 3px 8px;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    gap: 4px;
+                ">
+                    <i class="fas fa-list-ul"></i> 標的
+                </button>
+            </div>
+            <div style="padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; flex-wrap: wrap; align-items: center; gap: 8px;">
+                <label style="color: var(--text-dim); font-size: 11px; white-space: nowrap;">標的：</label>
+                <select id="backtest-symbol-inline" style="
+                    background: rgba(255,255,255,0.08);
+                    border: 1px solid rgba(255,255,255,0.1);
+                    color: #fff;
+                    font-size: 11px;
+                    padding: 5px 8px;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    flex: 1;
+                    min-width: 0;
+                ">
+                    <!-- 由 JS 動態載入 -->
+                </select>
+                <button id="btn-run-backtest-inline" style="
+                    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                    border: none;
+                    color: #fff;
+                    padding: 6px 12px;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    font-size: 11px;
+                    font-weight: 700;
+                    white-space: nowrap;
+                "><i class="fas fa-play"></i> 回測</button>
+            </div>
+            <div id="backtest-results-inline" style="flex:1; overflow-y:auto; padding: 15px;">
+                <div style="text-align: center; color: var(--text-dim); padding: 30px;">
+                    <i class="fas fa-chart-line" style="font-size: 36px; opacity: 0.3;"></i>
+                    <p style="margin-top: 12px; font-size: 12px;">點擊「回測」驗證引擎有效性</p>
+                    <p style="font-size: 10px; margin-top: 8px; color: var(--text-dim); opacity: 0.7;">根據歷史情緒與股價報酬計算勝率</p>
+                </div>
+            </div>
+        </section>
     </main>
 
     <!-- 歷史查詢抽屜 (全局層級) -->
-    <!-- 📜 全量日誌彈窗 -->
-    <div id="full-log-modal" style="
-        display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background: rgba(0,0,0,0.85); z-index: 9999; justify-content: center; align-items: center;
-    ">
-        <div style="background: #1a1c1e; border: 1px solid rgba(255,255,255,0.15); border-radius: 16px;
-                    width: 90%; max-width: 900px; height: 80vh; display: flex; flex-direction: column; overflow: hidden;
-                    box-shadow: 0 20px 60px rgba(0,0,0,0.5);">
-            <div style="padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.1);
-                        display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
-                <h3 style="margin:0; color:#fff; font-size:16px;">
-                    <i class="fas fa-scroll" style="color: #00d2ff;"></i>
-                    戰略維度：完整監控日誌總覽
-                </h3>
-                <button id="btn-close-full-log"
-                    style="background:transparent; border:1px solid rgba(255,255,255,0.2); color:#fff;
-                           width:32px; height:32px; border-radius:50%; cursor:pointer; font-size:16px;
-                           display:flex; align-items:center; justify-content:center;">✕</button>
-            </div>
-            <div id="full-log-body" style="flex:1; overflow-y:auto; padding:20px;
-                background:#0d0e10; color:#e2e8f0; font-family:'Courier New',monospace;
-                font-size:12px; line-height:1.8; white-space:pre-wrap; min-height:0;"></div>
-            <div style="padding:12px 20px; border-top:1px solid rgba(255,255,255,0.1); text-align:right; flex-shrink: 0;">
-                <button id="btn-close-full-log-bottom"
-                    style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.15);
-                    color:#fff; padding:6px 16px; border-radius:8px; cursor:pointer;">關閉視窗</button>
-            </div>
-        </div>
-    </div>
     <!-- 🖱️ 雙熊黑系：自定義右鍵選單 (Custom Context Menu) -->
     <div id="custom-context-menu" style="
         display: none; position: absolute; z-index: 100002;
@@ -345,56 +388,56 @@
 
     <!-- 🆕 正2 (槓桿 ETF) 輸入視窗 -->
     <div id="leverage2-modal" class="modal-overlay" style="display: none;">
-        <div class="modal-content" style="max-width: 340px; border-radius: 16px; border: 1px solid rgba(245, 158, 11, 0.3); background: #1a1c1e; box-shadow: 0 20px 50px rgba(0,0,0,0.8);">
-            <div style="padding: 20px;">
-                <div style="text-align: center; margin-bottom: 15px;">
-                    <h4 style="margin: 0 0 5px; color: #fff; font-size: 16px;"><i class="fas fa-bolt" style="color: #f59e0b;"></i> 正2 槓桿ETF</h4>
-                    <p style="margin: 0; color: var(--text-dim); font-size: 11px;">新增後會加入曝險市值計算</p>
+        <div class="modal-content" style="max-width: 700px; border: 1px solid rgba(245, 158, 11, 0.3);">
+            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin: 0; color: #f59e0b;"><i class="fas fa-bolt"></i> 正2 槓桿ETF</h3>
+                <button id="close-leverage2" class="close-btn">&times;</button>
+            </div>
+            <div style="padding: 15px;">
+                <div style="background: rgba(245, 158, 11, 0.05); padding: 12px; border-radius: 8px; margin-bottom: 15px; border: 1px solid rgba(245, 158, 11, 0.2);">
+                    <p style="margin: 0; color: #f59e0b; font-size: 11px; line-height: 1.6;">
+                        新增後會加入曝險市值計算。
+                    </p>
                 </div>
-                
-                <div class="leverage2-list" id="leverage2-list" style="margin-bottom: 15px; max-height: 200px; overflow-y: auto;">
+
+                <!-- 排序按鈕 -->
+                <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+                    <button onclick="moveLeverage2Up()" style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.2); color: #f59e0b; padding: 5px 10px; border-radius: 6px; cursor: pointer; font-size: 10px;">
+                        <i class="fas fa-chevron-up"></i> 上移
+                    </button>
+                    <button onclick="moveLeverage2Down()" style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.2); color: #f59e0b; padding: 5px 10px; border-radius: 6px; cursor: pointer; font-size: 10px;">
+                        <i class="fas fa-chevron-down"></i> 下移
+                    </button>
+                    <span style="flex: 1; text-align: right; color: var(--text-dim); font-size: 9px; align-self: center;">點擊選擇後移動</span>
+                </div>
+
+                <div class="leverage2-list" id="leverage2-list" style="margin-bottom: 12px; max-height: 180px; overflow-y: auto; border: 1px solid var(--glass-border); border-radius: 8px; background: rgba(0,0,0,0.2);">
                     <!-- 動態產生 -->
                 </div>
-                
-                <button id="btn-add-leverage2-item" style="
-                    width: 100%;
-                    padding: 10px;
-                    background: rgba(245, 158, 11, 0.1);
-                    border: 1px dashed rgba(245, 158, 11, 0.3);
-                    border-radius: 8px;
-                    color: #f59e0b;
-                    font-size: 12px;
-                    cursor: pointer;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    gap: 6px;
-                ">
-                    <i class="fas fa-plus"></i> 新增一筆
-                </button>
-            </div>
-            <div style="display: flex; border-top: 1px solid rgba(245, 158, 11, 0.2);">
-                <button id="leverage2-cancel" style="flex: 1; padding: 12px; background: transparent; border: none; border-right: 1px solid rgba(255,255,255,0.05); color: #888; cursor: pointer; font-weight: 700;">取消</button>
-                <button id="leverage2-confirm" style="flex: 1; padding: 12px; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border: none; color: #fff; cursor: pointer; font-weight: 900;">儲存</button>
-            </div>
-        </div>
-    </div>
 
-    <!-- 🆕 正2 新增/編輯 表單 -->
-    <div id="leverage2-form-modal" class="modal-overlay" style="display: none;">
-        <div class="modal-content" style="max-width: 300px; border-radius: 12px; border: 1px solid rgba(245, 158, 11, 0.3); background: #1a1c1e; padding: 20px;">
-            <h5 style="margin: 0 0 15px; color: #fff; font-size: 14px; text-align: center;"><i class="fas fa-edit" style="color: #f59e0b;"></i> <span id="leverage2-form-title">新增</span></h5>
-            <div style="margin-bottom: 12px;">
-                <label style="font-size: 11px; color: var(--text-dim); display: block; margin-bottom: 4px;">代號</label>
-                <input type="text" id="form-leverage2-symbol" placeholder="例：00631L" style="width:100%; padding:8px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.1); border-radius:6px; color:#fff; font-size:13px; text-transform:uppercase; box-sizing:border-box;">
-            </div>
-            <div style="margin-bottom: 15px;">
-                <label style="font-size: 11px; color: var(--text-dim); display: block; margin-bottom: 4px;">市值 (元)</label>
-                <input type="number" id="form-leverage2-value" placeholder="例：100000" style="width:100%; padding:8px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.1); border-radius:6px; color:#fff; font-size:13px; box-sizing:border-box;">
-            </div>
-            <div style="display: flex; gap: 8px;">
-                <button id="form-leverage2-cancel" style="flex:1; padding:8px; background:transparent; border:1px solid rgba(255,255,255,0.1); border-radius:6px; color:#888; cursor:pointer;">取消</button>
-                <button id="form-leverage2-save" style="flex:1; padding:8px; background:linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border:none; border-radius:6px; color:#fff; cursor:pointer; font-weight:700;">確定</button>
+                <!-- 新增表單 -->
+                <div style="position: relative; display: flex; gap: 8px; margin-bottom: 15px; padding: 10px; background: rgba(255,255,255,0.03); border-radius: 8px; align-items: center;">
+                    <div style="position: relative; width: 110px; flex-shrink: 0;">
+                        <input type="text" id="new-leverage2-symbol" placeholder="代號" autocomplete="off" style="width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); color: #fff; padding: 8px 12px; border-radius: 6px; font-size: 12px; text-transform: uppercase;">
+                        <div id="leverage2-symbol-suggestions" style="display: none; position: absolute; top: 100%; left: 0; width: 280px; background: #1a1b26; border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 8px; z-index: 99999; max-height: 200px; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.8); margin-top: 5px;">
+                            <!-- 建議項目 -->
+                        </div>
+                    </div>
+                    <input type="text" id="new-leverage2-name" placeholder="標的名稱 (自動產生)" style="flex: 1; min-width: 0; background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); color: #fff; padding: 8px 12px; border-radius: 6px; font-size: 12px;">
+                    <input type="number" id="new-leverage2-value" placeholder="市值 (元)" style="width: 140px; flex-shrink: 0; background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); color: #fff; padding: 8px 12px; border-radius: 6px; font-size: 12px;">
+                    <button id="btn-add-leverage2-item" style="background: #f59e0b; border: none; color: #fff; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold; flex-shrink: 0;">
+                        <i class="fas fa-plus"></i> 添加
+                    </button>
+                </div>
+
+                <div style="display: flex; gap: 10px; justify-content: flex-end; padding-top: 15px; border-top: 1px solid var(--glass-border);">
+                    <button id="leverage2-cancel" style="background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: var(--text-dim); padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 12px;">
+                        <i class="fas fa-times"></i> 取消
+                    </button>
+                    <button id="leverage2-confirm" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border: none; color: #fff; padding: 10px 25px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 12px;">
+                        <i class="fas fa-save"></i> 儲存變更
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -407,48 +450,6 @@
         <div id="history-list" class="history-list">
             <!-- 載入日期清單 -->
             <div class="loading-spinner">載入中...</div>
-        </div>
-    </div>
-
-    <!-- 回測驗證抽屜 -->
-    <div id="backtest-drawer" class="history-drawer">
-        <div class="history-header">
-            <h3 style="margin:0; font-size:18px; color:#fff;"><i class="fas fa-chart-line"></i> 規則引擎回測驗證</h3>
-            <button id="close-backtest" style="background:transparent; border:none; color:#fff; cursor:pointer;"><i class="fas fa-times"></i></button>
-        </div>
-        <div style="padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; flex-wrap: wrap; align-items: center; gap: 10px;">
-            <label style="color: var(--text-dim); font-size: 12px; white-space: nowrap;">選擇標的：</label>
-            <select id="backtest-symbol" style="
-                background: rgba(255,255,255,0.08);
-                border: 1px solid rgba(255,255,255,0.1);
-                color: #fff;
-                font-size: 12px;
-                padding: 6px 10px;
-                border-radius: 6px;
-                cursor: pointer;
-            ">
-                <option value="^TWII">台灣加權指數 (^TWII)</option>
-                <option value="2330.TW">台積電 (2330)</option>
-                <option value="2317.TW">鴻海 (2317)</option>
-                <option value="2454.TW">聯發科 (2454)</option>
-            </select>
-            <button id="btn-run-backtest" style="
-                background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-                border: none;
-                color: #fff;
-                padding: 8px 16px;
-                border-radius: 6px;
-                cursor: pointer;
-                font-size: 12px;
-                font-weight: 700;
-            "><i class="fas fa-play"></i> 執行回測</button>
-        </div>
-        <div id="backtest-results" style="flex:1; overflow-y:auto; padding: 20px;">
-            <div style="text-align: center; color: var(--text-dim); padding: 40px;">
-                <i class="fas fa-chart-line" style="font-size: 48px; opacity: 0.3;"></i>
-                <p style="margin-top: 15px;">點擊「執行回測」驗證規則引擎的有效性</p>
-                <p style="font-size: 11px; margin-top: 10px; color: var(--text-dim);">根據歷史情緒分數與隔日股價報酬計算勝率</p>
-            </div>
         </div>
     </div>
 
@@ -598,6 +599,57 @@
                         <i class="fas fa-sync-alt"></i> 重新載入
                     </button>
                     <button id="btn-save-lexicon" style="background: linear-gradient(135deg, #00d2ff 0%, #3a7bd5 100%); border: none; color: #fff; padding: 10px 25px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 12px;">
+                        <i class="fas fa-save"></i> 儲存變更
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 👁️ 標的清單編輯器 -->
+    <div id="targets-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content" style="max-width: 600px; border: 1px solid var(--accent-purple); overflow: visible !important;">
+            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin: 0; color: var(--accent-purple);"><i class="fas fa-list-ul"></i> 觀測標的清單管理</h3>
+                <button id="close-targets" class="close-btn">&times;</button>
+            </div>
+            <div style="padding: 15px;">
+                <div style="background: rgba(168, 85, 247, 0.05); padding: 12px; border-radius: 8px; margin-bottom: 15px; border: 1px solid rgba(168, 85, 247, 0.2);">
+                    <p style="margin: 0; color: #a855f7; font-size: 11px; line-height: 1.6;">
+                        在此設置系統觀測範圍。代號請遵循 Yahoo Finance 格式（如 2330.TW）。
+                    </p>
+                </div>
+
+                <!-- 排序按鈕 -->
+                <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+                    <button onclick="moveTargetUp()" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #888; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 11px;">
+                        <i class="fas fa-chevron-up"></i> 上移
+                    </button>
+                    <button onclick="moveTargetDown()" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #888; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 11px;">
+                        <i class="fas fa-chevron-down"></i> 下移
+                    </button>
+                    <span style="flex: 1; text-align: right; color: var(--text-dim); font-size: 10px; align-self: center;">點擊選擇後移動</span>
+                </div>
+
+                <div id="targets-list-container" style="max-height: 200px; overflow-y: auto; margin-bottom: 15px; border: 1px solid var(--glass-border); border-radius: 8px; background: rgba(0,0,0,0.2);">
+                    <!-- JS 動態產生標的列 -->
+                </div>
+
+                <div style="position: relative; display: flex; gap: 8px; margin-bottom: 15px; padding: 10px; background: rgba(255,255,255,0.03); border-radius: 8px;">
+                    <div style="position: relative; width: 140px;">
+                        <input type="text" id="new-target-symbol" placeholder="代號 (如: 0050)" autoComplete="off" style="width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); color: #fff; padding: 8px 12px; border-radius: 6px; font-size: 12px; text-transform: uppercase;">
+                        <div id="target-suggestions" style="display: none; position: absolute; top: 100%; left: 0; width: 280px; background: #1a1b26; border: 1px solid var(--accent-purple); border-radius: 8px; z-index: 99999; max-height: 250px; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.8); margin-top: 5px; padding: 5px 0;">
+                            <!-- 建議項目 -->
+                        </div>
+                    </div>
+                    <input type="text" id="new-target-name" placeholder="標的名稱 (自動產生)" style="flex: 1; background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); color: #fff; padding: 8px 12px; border-radius: 6px; font-size: 12px;">
+                    <button id="btn-add-new-target" style="background: var(--accent-purple); border: none; color: #fff; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold;">
+                        <i class="fas fa-plus"></i> 添加
+                    </button>
+                </div>
+
+                <div style="display: flex; gap: 10px; justify-content: flex-end; padding-top: 15px; border-top: 1px solid var(--glass-border);">
+                    <button id="btn-save-targets" style="background: linear-gradient(135deg, #a855f7 0%, #7e22ce 100%); border: none; color: #fff; padding: 10px 25px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 12px;">
                         <i class="fas fa-save"></i> 儲存變更
                     </button>
                 </div>

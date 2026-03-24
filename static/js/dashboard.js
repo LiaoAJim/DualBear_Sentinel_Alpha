@@ -1,12 +1,136 @@
 document.addEventListener('DOMContentLoaded', () => {
     console.log('[Dashboard] JavaScript 已載入!');
-    
+
+    // 🏗️ 欄位順序管理系統 (Persistent Column Ordering)
+    let panelOrder = JSON.parse(localStorage.getItem('dualbear_panel_order')) || [
+        'intelligence-panel', 
+        'sentiment-panel', 
+        'decision-panel', 
+        'asset-panel', 
+        'backtest-panel'
+    ];
+    let selectedPanelId = null;
+
+    const btnOrderLeft = document.getElementById('btn-order-left');
+    const btnOrderRight = document.getElementById('btn-order-right');
+
+    function initColumnOrdering() {
+        applyPanelOrder();
+        
+        // 為所有面板添加點選選中邏輯
+        panelOrder.forEach(id => {
+            const panel = document.getElementById(id);
+            if (panel) {
+                panel.classList.add('selectable');
+                panel.addEventListener('click', (e) => {
+                    // 如果點擊的是面板內部的按鈕或輸入框，不要選中 (除非是點在空處)
+                    const interactiveTags = ['BUTTON', 'INPUT', 'SELECT', 'A', 'TEXTAREA', 'I'];
+                    if (interactiveTags.includes(e.target.tagName)) return;
+                    
+                    selectPanel(id);
+                });
+            }
+        });
+
+        if (btnOrderLeft) {
+            btnOrderLeft.onclick = () => movePanel('left');
+        }
+        if (btnOrderRight) {
+            btnOrderRight.onclick = () => movePanel('right');
+        }
+        
+        updateOrderButtonsState();
+    }
+
+    function selectPanel(id) {
+        if (selectedPanelId === id) {
+            selectedPanelId = null; // 再次點擊取消選中
+        } else {
+            selectedPanelId = id;
+        }
+        
+        panelOrder.forEach(pId => {
+            const panel = document.getElementById(pId);
+            if (panel) {
+                panel.classList.toggle('selected', pId === selectedPanelId);
+            }
+        });
+        
+        updateOrderButtonsState();
+        if (selectedPanelId) {
+            const title = document.getElementById(id).querySelector('.panel-title').innerText.trim();
+            addLog(`📍 已選好欄位：${title}，可使用左/右按鈕調整其順序。`, 'system');
+        }
+    }
+
+    function movePanel(direction) {
+        if (!selectedPanelId) return;
+        
+        const currentIndex = panelOrder.indexOf(selectedPanelId);
+        let targetIndex = -1;
+        
+        if (direction === 'left' && currentIndex > 0) {
+            targetIndex = currentIndex - 1;
+        } else if (direction === 'right' && currentIndex < panelOrder.length - 1) {
+            targetIndex = currentIndex + 1;
+        }
+        
+        if (targetIndex !== -1) {
+            // 交換位置
+            [panelOrder[currentIndex], panelOrder[targetIndex]] = [panelOrder[targetIndex], panelOrder[currentIndex]];
+            localStorage.setItem('dualbear_panel_order', JSON.stringify(panelOrder));
+            applyPanelOrder();
+            updateOrderButtonsState();
+            saveSettings(); // 🆕 同步儲存至伺服器設定
+            
+            // 🛡️ 防禦性滾動：僅移動 main-grid 的水平捲軸，防止整個視窗位移
+            const grid = document.getElementById('main-grid');
+            const panel = document.getElementById(selectedPanelId);
+            if (grid && panel) {
+                const panelLeft = panel.offsetLeft;
+                const panelWidth = panel.offsetWidth;
+                const gridWidth = grid.offsetWidth;
+                const targetScroll = panelLeft - (gridWidth / 2) + (panelWidth / 2);
+                
+                grid.scrollTo({
+                    left: targetScroll,
+                    behavior: 'smooth'
+                });
+            }
+        }
+    }
+
+    function applyPanelOrder() {
+        panelOrder.forEach((id, index) => {
+            const panel = document.getElementById(id);
+            if (panel) {
+                panel.style.order = index;
+            }
+        });
+    }
+
+    function updateOrderButtonsState() {
+        if (!btnOrderLeft || !btnOrderRight) return;
+        
+        if (!selectedPanelId) {
+            btnOrderLeft.disabled = true;
+            btnOrderRight.disabled = true;
+            return;
+        }
+        
+        const index = panelOrder.indexOf(selectedPanelId);
+        btnOrderLeft.disabled = (index === 0);
+        btnOrderRight.disabled = (index === panelOrder.length - 1);
+    }
+
     // 調試：檢查關鍵元素是否存在
-    const elements = ['btn-lexicon', 'btn-manual', 'btn-add-leverage2', 'custom-confirm-modal', 'lexicon-modal', 'manual-modal', 'leverage2-modal', 'view-full-log', 'full-log-modal'];
+    const elements = ['btn-lexicon', 'btn-targets', 'btn-manual', 'btn-add-leverage2', 'custom-confirm-modal', 'lexicon-modal', 'targets-modal', 'manual-modal', 'leverage2-modal', 'toggle-sort', 'btn-order-left', 'btn-order-right'];
     elements.forEach(id => {
         const el = document.getElementById(id);
         console.log(`[元素檢查] #${id}: ${el ? '✓ 存在' : '✗ 不存在'}`);
     });
+
+    initColumnOrdering();
     
     const newsFeed = document.getElementById('intelligence-feed');
     const newsCount = document.getElementById('news-count');
@@ -20,6 +144,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const systemLogs = document.getElementById('system-logs');
     const connectionStatus = document.getElementById('conn-status'); // 修正為正確的 ID
     const clearLogsBtn = document.getElementById('clear-logs');
+    const toggleSortBtn = document.getElementById('toggle-sort');
+    const sortText = document.getElementById('sort-text');
     
     // 統計元素
     const statTotal = document.getElementById('stat-total');
@@ -29,6 +155,31 @@ document.addEventListener('DOMContentLoaded', () => {
     // 圓形進度條長度 (2 * PI * R)
     const CIRCUMFERENCE = 282.7;
     let allLogs = []; // 🆕 全量日誌儲存
+    let sortDesc = true; // true = 新-舊 (新到上), false = 舊-新 (舊到上)
+
+    // 渲染日誌列表
+    function renderLogs() {
+        systemLogs.innerHTML = '';
+        const logsToRender = sortDesc ? [...allLogs].reverse() : allLogs;
+        logsToRender.forEach((log) => {
+            const entry = document.createElement('div');
+            entry.className = 'log-entry info';
+            entry.innerHTML = `<span style="opacity: 0.5;">${log}</span>`;
+            systemLogs.appendChild(entry);
+        });
+        if (sortDesc) {
+            systemLogs.scrollTop = 0;
+        } else {
+            systemLogs.scrollTop = systemLogs.scrollHeight;
+        }
+    }
+
+    // 排序切換按鈕
+    toggleSortBtn.addEventListener('click', () => {
+        sortDesc = !sortDesc;
+        sortText.textContent = sortDesc ? '新>舊' : '舊>新';
+        renderLogs();
+    });
 
     function addLog(message, type = 'info') {
         const entry = document.createElement('div');
@@ -40,12 +191,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
         entry.className = `log-entry ${type}`;
         entry.innerHTML = `<span style="opacity: 0.5;">[${timeStr}]</span> ${message}`;
-        systemLogs.appendChild(entry);
-        systemLogs.scrollTop = systemLogs.scrollHeight;
-
-        // 限制面板顯示數量 (保持流暢)
-        if (systemLogs.children.length > 150) {
-            systemLogs.removeChild(systemLogs.firstChild);
+        
+        if (sortDesc) {
+            systemLogs.insertBefore(entry, systemLogs.firstChild);
+            systemLogs.scrollTop = 0;
+            if (systemLogs.children.length > 150) {
+                systemLogs.removeChild(systemLogs.lastChild);
+            }
+        } else {
+            systemLogs.appendChild(entry);
+            systemLogs.scrollTop = systemLogs.scrollHeight;
+            if (systemLogs.children.length > 150) {
+                systemLogs.removeChild(systemLogs.firstChild);
+            }
         }
     }
 
@@ -211,7 +369,8 @@ document.addEventListener('DOMContentLoaded', () => {
             stock: stockVal,
             longterm: longTermVal,
             provider: providerVal,
-            leverage2: leverage2Items
+            leverage2: leverage2Items,
+            panelOrder: panelOrder // 🆕 儲存欄位順序
         };
         console.log('[設定] 正在執行儲存...', settings);
         
@@ -249,6 +408,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (inputCurrentStock) inputCurrentStock.value = settings.stock || '500000';
                 if (inputLongTerm) inputLongTerm.value = settings.longterm || '50';
                 if (providerSelect) providerSelect.value = settings.provider || 'auto';
+                
+                // 🆕 載入欄位順序
+                if (settings.panelOrder && Array.isArray(settings.panelOrder)) {
+                    panelOrder = settings.panelOrder;
+                    localStorage.setItem('dualbear_panel_order', JSON.stringify(panelOrder));
+                    applyPanelOrder();
+                }
+
                 console.log('[設定] leverage2 資料:', settings.leverage2);
                 if (settings.leverage2 && Array.isArray(settings.leverage2)) {
                     leverage2Items = settings.leverage2;
@@ -368,7 +535,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // 初始化讀取
-    loadSettings().then(() => console.log('[設定] 初始化完成'));
+    loadSettings().then(() => {
+        console.log('[設定] 初始化完成');
+        loadTargets(); // 🆕 同時載入標的清單
+    });
 
     // 📡 WebSocket 連線 (儀表板大腦通訊)
     let socket;
@@ -599,41 +769,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- 📜 全量日誌彈窗與事件 ---
-    const btnViewFullLog = document.getElementById('view-full-log');
-    const fullLogModal = document.getElementById('full-log-modal');
-    const fullLogBody = document.getElementById('full-log-body');
-
-    function openFullLog() {
-        console.log('[全量日誌] 開啟中...');
-        fullLogBody.innerText = allLogs.join('\n');
-        fullLogModal.style.display = 'flex';
-        fullLogModal.classList.add('show');
-        console.log('[全量日誌] 已開啟, display:', fullLogModal.style.display);
-    }
-
-    function closeFullLog() {
-        console.log('[全量日誌] 關閉中...');
-        fullLogModal.style.display = 'none';
-        fullLogModal.classList.remove('show');
-        console.log('[全量日誌] 已關閉, display:', fullLogModal.style.display);
-    }
-
-    if (btnViewFullLog) {
-        btnViewFullLog.onclick = openFullLog;
-    }
-
-    // 綁定關閉按鈕
-    const btnCloseFullLog = document.getElementById('btn-close-full-log');
-    const btnCloseFullLogBottom = document.getElementById('btn-close-full-log-bottom');
-    if (btnCloseFullLog) btnCloseFullLog.onclick = closeFullLog;
-    if (btnCloseFullLogBottom) btnCloseFullLogBottom.onclick = closeFullLog;
-
-    // ℹ️ copyFullSystemLog 已移至 DOMContentLoaded 外部（見檔案最下方）
-
-    // 📐 右下方拉伸控制 (如果有保留此 ID)
-    const logPanelWrapper = document.getElementById('log-panel-wrapper');
-
     async function stopRecon() {
         btnRun.disabled = true;
         btnRun.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 停止中...';
@@ -663,70 +798,79 @@ document.addEventListener('DOMContentLoaded', () => {
         historyDrawer.classList.remove('active');
     };
 
-    // --- 回測驗證邏輯 ---
-    const btnBacktest = document.getElementById('btn-backtest');
-    const btnCloseBacktest = document.getElementById('close-backtest');
-    const backtestDrawer = document.getElementById('backtest-drawer');
-    const btnRunBacktest = document.getElementById('btn-run-backtest');
-    const backtestSymbol = document.getElementById('backtest-symbol');
-    const backtestResults = document.getElementById('backtest-results');
+    // --- 回測驗證邏輯（第五欄面板）---
+    const backtestSymbolInline = document.getElementById('backtest-symbol-inline');
+    const btnRunBacktestInline = document.getElementById('btn-run-backtest-inline');
+    const backtestResultsInline = document.getElementById('backtest-results-inline');
+    const btnTargetsInline = document.getElementById('btn-targets-inline');
 
-    btnBacktest.onclick = () => {
-        backtestDrawer.classList.add('active');
-    };
-
-    btnCloseBacktest.onclick = () => {
-        backtestDrawer.classList.remove('active');
-    };
-
-    btnRunBacktest.onclick = async () => {
-        const symbol = backtestSymbol.value;
-        btnRunBacktest.disabled = true;
-        btnRunBacktest.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 回測中...';
-        backtestResults.innerHTML = '<div class="loading-spinner">正在分析歷史數據與股價...</div>';
+    // 回測函數（僅用於第五欄面板）
+    async function runBacktestInline() {
+        const symbol = backtestSymbolInline.value;
+        const btn = btnRunBacktestInline;
+        const resultsEl = backtestResultsInline;
+        
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 回測中...';
+        resultsEl.innerHTML = '<div class="loading-spinner">正在分析歷史數據與股價...</div>';
         
         try {
             const response = await fetch(`/api/backtest?symbol=${encodeURIComponent(symbol)}`);
             const result = await response.json();
             
             if (result.status === 'error') {
-                backtestResults.innerHTML = `
-                    <div style="text-align: center; padding: 30px; color: #ef4444;">
-                        <i class="fas fa-exclamation-triangle" style="font-size: 40px;"></i>
-                        <p style="margin-top: 15px;">回測失敗</p>
-                        <p style="font-size: 12px; color: var(--text-dim); margin-top: 10px;">${result.message}</p>
-                        ${result.install_command ? `<p style="font-size: 11px; color: var(--accent-blue); margin-top: 10px;">安裝指令: <code>${result.install_command}</code></p>` : ''}
+                resultsEl.innerHTML = `
+                    <div style="text-align: center; padding: 20px; color: #ef4444;">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 32px;"></i>
+                        <p style="margin-top: 10px; font-size: 12px;">回測失敗</p>
+                        <p style="font-size: 11px; color: var(--text-dim); margin-top: 8px;">${result.message}</p>
                     </div>
                 `;
             } else if (result.status === 'insufficient_data') {
-                backtestResults.innerHTML = `
-                    <div style="text-align: center; padding: 30px;">
-                        <i class="fas fa-hourglass-half" style="font-size: 48px; color: #f59e0b; opacity: 0.7;"></i>
-                        <p style="margin-top: 15px; color: #f59e0b; font-weight: 700;">歷史資料不足</p>
-                        <p style="font-size: 12px; color: var(--text-dim); margin-top: 10px;">${result.message}</p>
-                        <p style="font-size: 11px; color: var(--text-dim); margin-top: 15px;">💡 ${result.suggestion}</p>
-                        <div style="margin-top: 20px; padding: 12px; background: rgba(0,0,0,0.3); border-radius: 8px;">
-                            <p style="font-size: 11px; color: var(--accent-blue);">現有資料:</p>
-                            <p style="font-size: 10px; color: var(--text-dim);">${result.unique_dates?.join(', ') || 'N/A'}</p>
-                            <p style="font-size: 11px; color: var(--accent-blue); margin-top: 8px;">總記錄數: ${result.total_records || 0}</p>
-                        </div>
+                resultsEl.innerHTML = `
+                    <div style="text-align: center; padding: 20px;">
+                        <i class="fas fa-hourglass-half" style="font-size: 36px; color: #f59e0b; opacity: 0.7;"></i>
+                        <p style="margin-top: 10px; color: #f59e0b; font-weight: 700; font-size: 12px;">歷史資料不足</p>
+                        <p style="font-size: 11px; color: var(--text-dim); margin-top: 8px;">${result.message}</p>
+                        <p style="font-size: 10px; color: var(--text-dim); margin-top: 10px;">💡 ${result.suggestion}</p>
                     </div>
                 `;
             } else {
-                backtestResults.innerHTML = renderBacktestResults(result);
+                resultsEl.innerHTML = renderBacktestResults(result);
             }
         } catch (err) {
-            backtestResults.innerHTML = `
-                <div style="text-align: center; padding: 30px; color: #ef4444;">
-                    <i class="fas fa-times-circle" style="font-size: 40px;"></i>
-                    <p style="margin-top: 15px;">連線失敗: ${err}</p>
+            resultsEl.innerHTML = `
+                <div style="text-align: center; padding: 20px; color: #ef4444;">
+                    <i class="fas fa-times-circle" style="font-size: 32px;"></i>
+                    <p style="margin-top: 10px; font-size: 12px;">連線失敗: ${err}</p>
                 </div>
             `;
         }
         
-        btnRunBacktest.disabled = false;
-        btnRunBacktest.innerHTML = '<i class="fas fa-play"></i> 執行回測';
-    };
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-play"></i> 回測';
+    }
+
+    // 第五欄回測按鈕
+    if (btnRunBacktestInline) {
+        btnRunBacktestInline.onclick = runBacktestInline;
+    }
+
+    // 第五欄標的管理按鈕 -> 開啟 targets modal
+    if (btnTargetsInline) {
+        console.log('[DEBUG] 綁定 btnTargetsInline click');
+        btnTargetsInline.onclick = () => {
+            console.log('[DEBUG] btnTargetsInline 被點擊');
+            const targetsModal = document.getElementById('targets-modal');
+            console.log('[DEBUG] targetsModal:', targetsModal);
+            if (targetsModal) {
+                targetsModal.style.display = 'flex';
+                targetsModal.classList.add('show');
+            }
+        };
+    } else {
+        console.log('[DEBUG] btnTargetsInline 為 null!');
+    }
 
     function renderBacktestResults(result) {
         const bullish = result.bullish || {};
@@ -988,6 +1132,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let isResizing = false;
 
+    if (resizer) {
     resizer.addEventListener('mousedown', (e) => {
         isResizing = true;
         document.body.style.cursor = 'ns-resize';
@@ -1021,6 +1166,7 @@ document.addEventListener('DOMContentLoaded', () => {
         isResizing = false;
         document.body.style.cursor = '';
     });
+    }
 
     function updateQuantUI(data) {
         if (!data) return;
@@ -1127,14 +1273,20 @@ const leverage2ETFList = {
 
 // 正2 狀態（支援多筆）
 let leverage2Items = [];  // [{symbol, name, value}, ...]
+let selectedLeverage2Index = -1; // 選中的索引
 
 // 初始化正2功能
 function initLeverage2() {
     const btnAddLeverage2 = document.getElementById('btn-add-leverage2');
     const leverage2Modal = document.getElementById('leverage2-modal');
+    const closeBtn = document.getElementById('close-leverage2');
     const btnCancel = document.getElementById('leverage2-cancel');
     const btnConfirm = document.getElementById('leverage2-confirm');
+    const newSymbolInput = document.getElementById('new-leverage2-symbol');
+    const newNameInput = document.getElementById('new-leverage2-name');
+    const newValueInput = document.getElementById('new-leverage2-value');
     const btnAddItem = document.getElementById('btn-add-leverage2-item');
+    const symbolSuggestions = document.getElementById('leverage2-symbol-suggestions');
     
     // 點擊新增按鈕
     if (btnAddLeverage2) {
@@ -1142,6 +1294,14 @@ function initLeverage2() {
             renderLeverage2List();
             leverage2Modal.style.display = 'flex';
             leverage2Modal.classList.add('show');
+        };
+    }
+    
+    // 關閉
+    if (closeBtn) {
+        closeBtn.onclick = () => {
+            leverage2Modal.style.display = 'none';
+            leverage2Modal.classList.remove('show');
         };
     }
     
@@ -1153,19 +1313,91 @@ function initLeverage2() {
         };
     }
     
-    // 確認（只關閉視窗，已自動儲存）
+    // 確認
     if (btnConfirm) {
         btnConfirm.onclick = () => {
             leverage2Modal.style.display = 'none';
             leverage2Modal.classList.remove('show');
             updateLeverage2Display();
             updateAssetCalculations();
+            saveSettings();
         };
     }
     
-    // 新增一筆
+    // 代號輸入建議
+    if (newSymbolInput) {
+        newSymbolInput.oninput = () => {
+            const query = newSymbolInput.value.trim().toUpperCase();
+            if (!query) {
+                if (symbolSuggestions) symbolSuggestions.style.display = 'none';
+                return;
+            }
+            
+            // 搜尋正2 ETF 列表
+            const entries = Object.entries(leverage2ETFList);
+            const matches = entries.filter(([sym, name]) => 
+                sym.includes(query) || name.includes(query)
+            ).slice(0, 8);
+            
+            if (matches.length > 0) {
+                symbolSuggestions.innerHTML = matches.map(([sym, name]) => `
+                    <div onclick="selectLeverage2Symbol('${sym}', '${name}')" style="padding: 8px 12px; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.05); color: #fff; font-size: 12px;">
+                        <span style="color: #f59e0b; font-weight: 700;">${sym}</span>
+                        <span style="color: #888; margin-left: 8px;">${name}</span>
+                    </div>
+                `).join('');
+                symbolSuggestions.style.display = 'block';
+                
+                // 自動帶入第一個名稱
+                if (newNameInput && matches[0]) {
+                    newNameInput.value = matches[0][1];
+                }
+            } else {
+                if (symbolSuggestions) symbolSuggestions.style.display = 'none';
+            }
+        };
+        
+        // 點擊外部關閉建議
+        document.addEventListener('mousedown', function closeLev2Suggestions(e) {
+            if (!newSymbolInput.contains(e.target) && (!symbolSuggestions || !symbolSuggestions.contains(e.target))) {
+                if (symbolSuggestions) symbolSuggestions.style.display = 'none';
+                document.removeEventListener('mousedown', closeLev2Suggestions);
+            }
+        });
+    }
+    
+    // 添加按鈕
     if (btnAddItem) {
-        btnAddItem.onclick = () => openLeverage2Form(null);
+        btnAddItem.onclick = () => {
+            const symbol = newSymbolInput.value.trim().toUpperCase();
+            const nameInput = newNameInput.value.trim();
+            const value = parseFloat(newValueInput.value) || 0;
+            
+            if (!symbol) {
+                newSymbolInput.style.borderColor = '#ef4444';
+                return;
+            }
+            newSymbolInput.style.borderColor = '';
+            
+            // 使用輸入的名稱，若為空則自動產生
+            const name = nameInput || leverage2ETFList[symbol] || symbol;
+            leverage2Items.push({ symbol, name, value });
+            renderLeverage2List();
+            saveSettings();
+            
+            // 清空輸入
+            newSymbolInput.value = '';
+            newNameInput.value = '';
+            newValueInput.value = '';
+            newSymbolInput.focus();
+        };
+    }
+    
+    // Enter 鍵新增
+    if (newSymbolInput && newValueInput) {
+        newValueInput.onkeydown = (e) => {
+            if (e.key === 'Enter' && btnAddItem) btnAddItem.click();
+        };
     }
 }
 
@@ -1175,28 +1407,82 @@ function renderLeverage2List() {
     if (!list) return;
     
     if (leverage2Items.length === 0) {
-        list.innerHTML = '<div style="text-align:center; color:var(--text-dim); font-size:12px; padding:20px;">尚無正2資料</div>';
+        selectedLeverage2Index = -1;
+        list.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-dim); font-size: 11px;">尚無正2資料</div>';
         return;
     }
     
     list.innerHTML = leverage2Items.map((item, index) => {
         const displayName = item.name || leverage2ETFList[item.symbol] || item.symbol;
+        const isSelected = index === selectedLeverage2Index;
         return `
-        <div style="display:flex; align-items:center; padding:10px; background:rgba(245,158,11,0.08); border-radius:8px; margin-bottom:8px;">
-            <div style="flex:1;">
-                <div style="font-size:13px; font-weight:700; color:#fff;">${item.symbol}</div>
-                <div style="font-size:11px; color:${displayName === item.symbol ? 'var(--accent-pink)' : 'var(--text-dim)'};">${displayName}</div>
+        <div onclick="selectLeverage2(${index})" style="
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            padding: 8px 12px; 
+            border-bottom: 1px solid rgba(255,255,255,0.05); 
+            background: ${isSelected ? 'rgba(245, 158, 11, 0.25)' : (index % 2 === 0 ? 'rgba(255,255,255,0.02)' : 'transparent')}; 
+            cursor: pointer;
+            transition: background 0.15s;
+            border-left: 3px solid ${isSelected ? '#f59e0b' : 'transparent'};
+        ">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="color: #555; font-size: 10px; min-width: 18px;">${index + 1}</span>
+                <div>
+                    <div style="color: #fff; font-size: 12px; font-weight: 700;">${item.symbol}</div>
+                    <div style="color: #f59e0b; font-size: 10px; opacity: 0.8;">${displayName}</div>
+                </div>
             </div>
-            <div style="text-align:right; margin-right:10px;">
-                <div style="font-size:14px; font-weight:700; color:#f59e0b;">$${item.value.toLocaleString()}</div>
-            </div>
-            <div style="display:flex; gap:4px;">
-                <button onclick="openLeverage2Form(${index})" style="padding:6px 8px; background:rgba(255,255,255,0.1); border:none; border-radius:4px; color:#fff; cursor:pointer; font-size:11px;"><i class="fas fa-edit"></i></button>
-                <button onclick="removeLeverage2Item(${index})" style="padding:6px 8px; background:rgba(239,68,68,0.2); border:none; border-radius:4px; color:#ef4444; cursor:pointer; font-size:11px;"><i class="fas fa-trash"></i></button>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <input type="number" value="${item.value}" onclick="event.stopPropagation()" onchange="updateLeverage2Value(${index}, this.value)" style="
+                    width: 100px; 
+                    background: rgba(0,0,0,0.3); 
+                    border: 1px solid rgba(245, 158, 11, 0.3); 
+                    color: #f59e0b; 
+                    padding: 4px 8px; 
+                    border-radius: 4px; 
+                    font-size: 12px; 
+                    font-weight: 700;
+                    text-align: right;
+                ">
+                <button onclick="event.stopPropagation(); removeLeverage2Item(${index})" style="background: transparent; border: none; color: #ef4444; cursor: pointer; padding: 5px;">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
             </div>
         </div>
     `}).join('');
 }
+
+window.selectLeverage2 = (index) => {
+    selectedLeverage2Index = index;
+    renderLeverage2List();
+};
+
+window.updateLeverage2Value = (index, value) => {
+    leverage2Items[index].value = parseFloat(value) || 0;
+    saveSettings();
+};
+
+window.moveLeverage2Up = () => {
+    if (selectedLeverage2Index > 0) {
+        const temp = leverage2Items[selectedLeverage2Index];
+        leverage2Items[selectedLeverage2Index] = leverage2Items[selectedLeverage2Index - 1];
+        leverage2Items[selectedLeverage2Index - 1] = temp;
+        selectedLeverage2Index--;
+        renderLeverage2List();
+    }
+};
+
+window.moveLeverage2Down = () => {
+    if (selectedLeverage2Index >= 0 && selectedLeverage2Index < leverage2Items.length - 1) {
+        const temp = leverage2Items[selectedLeverage2Index];
+        leverage2Items[selectedLeverage2Index] = leverage2Items[selectedLeverage2Index + 1];
+        leverage2Items[selectedLeverage2Index + 1] = temp;
+        selectedLeverage2Index++;
+        renderLeverage2List();
+    }
+};
 
 // 開啟正2表單
 function openLeverage2Form(index) {
@@ -1206,6 +1492,7 @@ function openLeverage2Form(index) {
     const formTitle = document.getElementById('leverage2-form-title');
     const btnSave = document.getElementById('form-leverage2-save');
     const btnCancel = document.getElementById('form-leverage2-cancel');
+    const leverage2Suggestions = document.getElementById('leverage2-suggestions');
     
     const isEdit = index !== null && leverage2Items[index];
     
@@ -1216,6 +1503,42 @@ function openLeverage2Form(index) {
     
     // 顯示
     formModal.classList.add('show');
+    formSymbol.focus();
+    
+    // 代號輸入建議
+    formSymbol.oninput = () => {
+        const query = formSymbol.value.trim().toUpperCase();
+        if (!query) {
+            leverage2Suggestions.style.display = 'none';
+            return;
+        }
+        
+        // 搜尋正2 ETF 列表
+        const entries = Object.entries(leverage2ETFList);
+        const matches = entries.filter(([sym, name]) => 
+            sym.includes(query) || name.includes(query)
+        ).slice(0, 8);
+        
+        if (matches.length > 0) {
+            leverage2Suggestions.innerHTML = matches.map(([sym, name]) => `
+                <div onclick="selectLeverage2Suggestion('${sym}', '${name}')" style="padding: 8px 12px; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.05); color: #fff; font-size: 12px;">
+                    <span style="color: #f59e0b; font-weight: 700;">${sym}</span>
+                    <span style="color: #888; margin-left: 8px;">${name}</span>
+                </div>
+            `).join('');
+            leverage2Suggestions.style.display = 'block';
+        } else {
+            leverage2Suggestions.style.display = 'none';
+        }
+    };
+    
+    // 點擊外部關閉建議
+    document.addEventListener('mousedown', function closeLeverage2Suggestions(e) {
+        if (!formSymbol.contains(e.target) && !leverage2Suggestions.contains(e.target)) {
+            leverage2Suggestions.style.display = 'none';
+            document.removeEventListener('mousedown', closeLeverage2Suggestions);
+        }
+    });
     
     // 儲存
     btnSave.onclick = () => {
@@ -1252,6 +1575,9 @@ function openLeverage2Form(index) {
 // 刪除正2項目
 function removeLeverage2Item(index) {
     leverage2Items.splice(index, 1);
+    if (selectedLeverage2Index >= leverage2Items.length) {
+        selectedLeverage2Index = leverage2Items.length - 1;
+    }
     renderLeverage2List();
     updateLeverage2Display(); // 強制觸發重算與同步更新
     saveSettings();
@@ -1288,6 +1614,9 @@ function updateLeverage2Display() {
     
     // 🆕 同步更新曝險市值和 Beta
     updateAssetCalculations();
+    
+    // 🆕 更新迷你清單
+    renderLeverage2MiniList();
 }
 
 // 取得正2總市值
@@ -1301,6 +1630,51 @@ function removeLeverage2() {
     updateLeverage2Display();
     updateAssetCalculations();
     saveSettings();
+    renderLeverage2MiniList();
+}
+
+// 展開/收折正2清單
+window.toggleLeverage2List = () => {
+    const listEl = document.getElementById('leverage2-list-mini');
+    const iconEl = document.getElementById('leverage2-toggle-icon');
+    if (!listEl) return;
+    
+    if (listEl.style.display === 'none') {
+        listEl.style.display = 'block';
+        if (iconEl) iconEl.className = 'fas fa-chevron-up';
+        renderLeverage2MiniList();
+    } else {
+        listEl.style.display = 'none';
+        if (iconEl) iconEl.className = 'fas fa-chevron-down';
+    }
+};
+
+// 渲染迷你正2清單
+function renderLeverage2MiniList() {
+    const listEl = document.getElementById('leverage2-list-mini');
+    if (!listEl) return;
+    
+    if (leverage2Items.length === 0) {
+        listEl.innerHTML = '<div style="text-align: center; color: var(--text-dim); font-size: 10px; padding: 8px;">尚無正2資料</div>';
+        return;
+    }
+    
+    listEl.innerHTML = leverage2Items.map((item, index) => {
+        const displayName = item.name || leverage2ETFList[item.symbol] || item.symbol;
+        return `
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 10px;">
+            <div>
+                <span style="color: #fff; font-weight: 700;">${item.symbol}</span>
+                <span style="color: #888; margin-left: 4px;">${displayName}</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px;">
+                <span style="color: #f59e0b;">$${item.value.toLocaleString()}</span>
+                <button onclick="event.stopPropagation(); removeLeverage2Item(${index})" style="background: transparent; border: none; color: #ef4444; cursor: pointer; padding: 2px; font-size: 9px;">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+    `}).join('');
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1481,4 +1855,349 @@ function quickAddWord(type) {
     
     lexiconQuickAdd.value = '';
     lexiconQuickAdd.focus();
+}
+
+// 👁️ 標的管理邏輯 (Targets Management)
+// 🛡️ 註：targetStockDataList 現由外部 static/js/stocks_lookup.js 提供 (全量庫)
+// 如果外部庫未載入，則使用基本兜底
+if (typeof targetStockDataList === 'undefined') {
+    window.targetStockDataList = { "^TWII": "台股大盤", "2330.TW": "台積電" };
+}
+
+const btnTargets = document.getElementById('btn-targets');
+const targetsModal = document.getElementById('targets-modal');
+const closeTargets = document.getElementById('close-targets');
+const btnSaveTargets = document.getElementById('btn-save-targets');
+const btnAddNewTarget = document.getElementById('btn-add-new-target');
+const targetsListContainer = document.getElementById('targets-list-container');
+const backtestSymbolSelector = document.getElementById('backtest-symbol');
+const newTargetName = document.getElementById('new-target-name');
+const newTargetSymbol = document.getElementById('new-target-symbol');
+const targetSuggestions = document.getElementById('target-suggestions');
+
+let currentSelectedIndex = -1; // 追蹤鍵盤選中的建議索引
+let currentTargets = [];
+
+async function loadTargets() {
+    try {
+        const resp = await fetch('/api/targets');
+        const data = await resp.json();
+        currentTargets = data.targets || [];
+        updateBacktestSymbolDropdown(); // 同步到選單
+        renderTargetsList();
+        console.log('[標的] 載入成功:', currentTargets.length, '筆');
+    } catch (e) {
+        console.error('[標的] 載入失敗:', e);
+    }
+}
+
+// 🆕 同步回測下拉選單（同時更新抽屜和第五欄面板）
+function updateBacktestSymbolDropdown() {
+    if (backtestSymbolSelector) {
+        const currentVal = backtestSymbolSelector.value;
+        backtestSymbolSelector.innerHTML = '';
+        currentTargets.forEach(t => {
+            const opt = document.createElement('option');
+            opt.value = t.symbol;
+            opt.textContent = `${t.name} (${t.symbol})`;
+            backtestSymbolSelector.appendChild(opt);
+        });
+        // 恢復之前的選擇，如果還在的話
+        if (currentVal) backtestSymbolSelector.value = currentVal;
+    }
+    
+    // 同步更新第五欄面板的 select
+    const inlineSelect = document.getElementById('backtest-symbol-inline');
+    if (inlineSelect) {
+        const currentValInline = inlineSelect.value;
+        inlineSelect.innerHTML = '';
+        currentTargets.forEach(t => {
+            const opt = document.createElement('option');
+            opt.value = t.symbol;
+            opt.textContent = `${t.name} (${t.symbol})`;
+            inlineSelect.appendChild(opt);
+        });
+        // 恢復之前的選擇，如果還在的話
+        if (currentValInline && currentTargets.find(t => t.symbol === currentValInline)) {
+            inlineSelect.value = currentValInline;
+        }
+    }
+}
+
+let selectedTargetIndex = -1; // 選中的索引
+
+function renderTargetsList() {
+    if (!targetsListContainer) return;
+    
+    if (currentTargets.length === 0) {
+        selectedTargetIndex = -1;
+        targetsListContainer.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-dim); font-size: 11px;">尚未設定標的</div>';
+        return;
+    }
+    
+    targetsListContainer.innerHTML = currentTargets.map((t, index) => `
+        <div onclick="selectTarget(${index})" data-index="${index}" style="
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            padding: 8px 12px; 
+            border-bottom: 1px solid rgba(255,255,255,0.05); 
+            background: ${index === selectedTargetIndex ? 'rgba(168, 85, 247, 0.2)' : (index % 2 === 0 ? 'rgba(255,255,255,0.02)' : 'transparent')}; 
+            cursor: pointer;
+            transition: background 0.15s;
+            border-left: 3px solid ${index === selectedTargetIndex ? '#a855f7' : 'transparent'};
+        ">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="color: #555; font-size: 10px; min-width: 18px;">${index + 1}</span>
+                <div>
+                    <div style="color: #fff; font-size: 12px; font-weight: 700;">${t.name}</div>
+                    <div style="color: #a855f7; font-size: 10px; opacity: 0.8;">${t.symbol}</div>
+                </div>
+            </div>
+            <button onclick="event.stopPropagation(); deleteTarget(${index})" style="background: transparent; border: none; color: #ef4444; cursor: pointer; padding: 5px;">
+                <i class="fas fa-trash-alt"></i>
+            </button>
+        </div>
+    `).join('');
+    
+    updateBacktestSymbolDropdown();
+}
+
+window.selectTarget = (index) => {
+    selectedTargetIndex = index;
+    renderTargetsList();
+};
+
+window.deleteTarget = (index) => {
+    currentTargets.splice(index, 1);
+    if (selectedTargetIndex >= currentTargets.length) {
+        selectedTargetIndex = currentTargets.length - 1;
+    }
+    renderTargetsList();
+};
+
+window.moveTargetUp = () => {
+    if (selectedTargetIndex > 0) {
+        const temp = currentTargets[selectedTargetIndex];
+        currentTargets[selectedTargetIndex] = currentTargets[selectedTargetIndex - 1];
+        currentTargets[selectedTargetIndex - 1] = temp;
+        selectedTargetIndex--;
+        renderTargetsList();
+    }
+};
+
+window.moveTargetDown = () => {
+    if (selectedTargetIndex >= 0 && selectedTargetIndex < currentTargets.length - 1) {
+        const temp = currentTargets[selectedTargetIndex];
+        currentTargets[selectedTargetIndex] = currentTargets[selectedTargetIndex + 1];
+        currentTargets[selectedTargetIndex + 1] = temp;
+        selectedTargetIndex++;
+        renderTargetsList();
+    }
+};
+
+if (btnTargets) {
+    btnTargets.onclick = () => {
+        targetsModal.style.display = 'flex';
+        targetsModal.classList.add('show');
+        renderTargetsList();
+        if (newTargetSymbol) setTimeout(() => newTargetSymbol.focus(), 100);
+    };
+}
+
+if (closeTargets) {
+    closeTargets.onclick = () => {
+        targetsModal.style.display = 'none';
+        targetsModal.classList.remove('show');
+    };
+}
+
+if (btnAddNewTarget) {
+    btnAddNewTarget.onclick = () => {
+        const name = newTargetName ? newTargetName.value.trim() : '';
+        const symbol = newTargetSymbol ? newTargetSymbol.value.trim().toUpperCase() : '';
+        
+        if (!name || !symbol) {
+            addLog('⚠️ 請輸入名稱與代號', 'warning');
+            return;
+        }
+        
+        currentTargets.push({ name, symbol });
+        renderTargetsList();
+        
+        if (newTargetName) newTargetName.value = '';
+        if (newTargetSymbol) newTargetSymbol.value = '';
+        if (newTargetName) newTargetName.focus();
+    };
+}
+
+// 🆕 代號輸入時自動產生名稱 & 顯示建議列表
+if (newTargetSymbol) {
+    newTargetSymbol.oninput = () => {
+        const query = newTargetSymbol.value.trim().toUpperCase();
+        currentSelectedIndex = -1; // 重置選中狀態
+        
+        if (!query) {
+            if (targetSuggestions) targetSuggestions.style.display = 'none';
+            return;
+        }
+
+        // 1. 搜尋建議列表 (支援代號或名稱搜尋)
+        const entries = Object.entries(targetStockDataList);
+        const matches = [];
+        for (const [sym, name] of entries) {
+            if (sym.includes(query) || name.includes(query)) {
+                matches.push({ sym, name });
+                if (matches.length >= 10) break; // 修改顯示數量，維持畫面簡化
+            }
+        }
+
+        if (matches.length > 0) {
+            targetSuggestions.innerHTML = matches.map((m, idx) => `
+                <div class="suggestion-item" data-idx="${idx}" onclick="selectSuggestion('${m.sym}', '${m.name}')">
+                    <span class="sym">${m.sym}</span>
+                    <span class="name">${m.name}</span>
+                </div>
+            `).join('');
+            targetSuggestions.style.display = 'block';
+            
+            // 自動帶入第一個名稱 (輔助顯示，不強迫修改 Input)
+            if (newTargetName) newTargetName.value = matches[0].name;
+        } else {
+            targetSuggestions.style.display = 'none';
+        }
+    };
+
+    // 鍵盤導航 (上下鍵與 Enter)
+    newTargetSymbol.onkeydown = (e) => {
+        const items = targetSuggestions ? targetSuggestions.querySelectorAll('.suggestion-item') : [];
+        
+        if (targetSuggestions && targetSuggestions.style.display !== 'none' && items.length > 0) {
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                currentSelectedIndex = (currentSelectedIndex + 1) % items.length;
+                updateSuggestionHighlight(items);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                currentSelectedIndex = (currentSelectedIndex - 1 + items.length) % items.length;
+                updateSuggestionHighlight(items);
+            } else if (e.key === 'Enter') {
+                if (currentSelectedIndex >= 0) {
+                    e.preventDefault();
+                    const activeItem = items[currentSelectedIndex];
+                    // 模擬點擊選擇
+                    activeItem.click();
+                } else {
+                    // 如果沒選中，看看 Input 有沒有值
+                    if (newTargetSymbol.value.trim() && btnAddNewTarget) {
+                        btnAddNewTarget.click();
+                    }
+                }
+                targetSuggestions.style.display = 'none';
+            } else if (e.key === 'Escape') {
+                targetSuggestions.style.display = 'none';
+            }
+        } else if (e.key === 'Enter') {
+            if (btnAddNewTarget) btnAddNewTarget.click();
+        }
+    };
+
+    // 點擊外部關閉顯示框
+    document.addEventListener('mousedown', (e) => {
+        if (targetSuggestions && !newTargetSymbol.contains(e.target) && !targetSuggestions.contains(e.target)) {
+            targetSuggestions.style.display = 'none';
+        }
+    });
+}
+
+function updateSuggestionHighlight(items) {
+    items.forEach((item, idx) => {
+        if (idx === currentSelectedIndex) {
+            item.classList.add('active');
+            item.scrollIntoView({ block: 'nearest' });
+        } else {
+            item.classList.remove('active');
+        }
+    });
+}
+
+// 選擇正2代號建議的全域函式
+window.selectLeverage2Symbol = (symbol, name) => {
+    const symInput = document.getElementById('new-leverage2-symbol');
+    const nameInput = document.getElementById('new-leverage2-name');
+    const suggestions = document.getElementById('leverage2-symbol-suggestions');
+    if (symInput) symInput.value = symbol;
+    if (nameInput) nameInput.value = name;
+    if (suggestions) suggestions.style.display = 'none';
+};
+
+// 選擇建議項目的全域函式
+window.selectSuggestion = (symbol, name) => {
+    if (newTargetSymbol) newTargetSymbol.value = symbol;
+    if (newTargetName) newTargetName.value = name;
+    if (targetSuggestions) targetSuggestions.style.display = 'none';
+    
+    // 直接觸發添加按鈕
+    if (btnAddNewTarget) btnAddNewTarget.click();
+};
+
+if (btnSaveTargets) {
+    btnSaveTargets.onclick = async () => {
+        // 防止重複點擊
+        if (btnSaveTargets.disabled) return;
+        
+        const originalText = btnSaveTargets.innerHTML;
+        const originalBg = btnSaveTargets.style.background;
+        try {
+            btnSaveTargets.disabled = true;
+            btnSaveTargets.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> 儲存中...';
+            
+            const resp = await fetch('/api/targets', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ targets: currentTargets })
+            });
+            
+            if (!resp.ok) {
+                throw new Error(`HTTP ${resp.status}: ${resp.statusText}`);
+            }
+            
+            const res = await resp.json();
+            console.log('[標的] 儲存結果:', res);
+            
+            if (res.status === 'success') {
+                btnSaveTargets.style.background = '#10b981';
+                btnSaveTargets.innerHTML = '<i class="fas fa-check"></i> 成功';
+                addLog('✅ 觀測標的已成功更新', 'success');
+                
+                setTimeout(() => {
+                    targetsModal.classList.remove('show');
+                    setTimeout(() => targetsModal.style.display = 'none', 300);
+                    loadTargets();
+                }, 600);
+            } else {
+                throw new Error(res.message || '未知錯誤');
+            }
+        } catch (e) {
+            console.error('[標的] 儲存失敗:', e);
+            addLog('❌ 儲存失敗: ' + e.message, 'error');
+            btnSaveTargets.style.background = '#ef4444';
+            btnSaveTargets.innerHTML = '<i class="fas fa-times"></i> 失敗';
+        } finally {
+            setTimeout(() => {
+                btnSaveTargets.style.background = originalBg;
+                btnSaveTargets.innerHTML = '<i class="fas fa-save"></i> 儲存變更';
+                btnSaveTargets.disabled = false;
+            }, 1500);
+        }
+    };
+}
+
+if (targetsModal) {
+    targetsModal.onclick = (e) => {
+        if (e.target === targetsModal) {
+            targetsModal.style.display = 'none';
+            targetsModal.classList.remove('show');
+        }
+    };
 }
