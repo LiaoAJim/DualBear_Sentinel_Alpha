@@ -25,7 +25,6 @@
 
         <div class="header-right">
             <div class="system-controls">
-                <button id="btn-lexicon" class="header-btn"><i class="fas fa-book-open"></i> 詞庫</button>
                 <button id="btn-manual" class="header-btn"><i class="fas fa-book"></i> 系統手冊</button>
                 <button id="btn-run" class="run-btn"><i class="fas fa-play"></i> 立即執行</button>
                 <button id="btn-history" class="header-btn"><i class="fas fa-history"></i> 歷史檔案</button>
@@ -62,21 +61,8 @@
     </div>
 
     <main id="main-grid">
-        <!-- 第一欄：情報偵察 -->
-        <section class="panel" id="intelligence-panel" style="display: flex; flex-direction: column; overflow: hidden;">
-            <div class="panel-header">
-                <h2 class="panel-title"><i class="fas fa-broadcast-tower"></i> <span style="color: var(--accent-blue); margin-right: 5px;">Step 1</span> 實時偵察情報網</h2>
-                <span id="news-count" class="count-badge">0 則偵察</span>
-            </div>
-            <div class="main-content" style="flex: 1; overflow-y: auto;">
-                <div class="feed-content" id="intelligence-feed">
-                    <div class="empty-state">
-                        <i class="fas fa-search"></i>
-                        <p>等待偵察數據導入...</p>
-                    </div>
-                </div>
-            </div>
-        </section>
+        <!-- 第一欄：情報偵察 (動態載入) -->
+        <div id="intelligence-panel-container" class="panel" style="display: flex; flex-direction: column; overflow: hidden;"></div>
 
         <!-- 第二欄：情緒核心 -->
         <section class="panel" id="sentiment-panel" style="display: flex; flex-direction: column; overflow: hidden;">
@@ -121,7 +107,25 @@
                     <option value="gemini">✨ Gemini</option>
                     <option value="nvidia">⚡ NVIDIA</option>
                     <option value="rule">📋 規則引擎</option>
-                </select>
+                    </select>
+                    <button id="btn-lexicon-step2" style="
+                        position: absolute;
+                        top: 50px;
+                        right: 10px;
+                        z-index: 10;
+                        background: rgba(0, 210, 255, 0.15);
+                        border: 1px solid rgba(0, 210, 255, 0.3);
+                        color: var(--accent-blue);
+                        font-size: 10px;
+                        padding: 4px 10px;
+                        border-radius: 6px;
+                        cursor: pointer;
+                        display: flex;
+                        align-items: center;
+                        gap: 4px;
+                    " title="開啟情緒詞庫">
+                        <i class="fas fa-book-open"></i> 詞庫
+                    </button>
                 <div class="gauge-container">
                     <svg viewBox="0 0 100 100">
                         <circle cx="50" cy="50" r="45" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="6"/>
@@ -657,6 +661,38 @@
         </div>
     </div>
     
+    <!-- Step 1: Intelligence Panel (Dynamic Load) -->
+    <script>
+        // 動態載入 intelligence-panel.html
+        (function() {
+            const container = document.getElementById('intelligence-panel-container');
+            if (container) {
+                fetch('/templates/intelligence-panel.html')
+                    .then(res => res.text())
+                    .then(html => {
+                        container.innerHTML = html;
+                        // 觸發初始化
+                        if (window.IntelligencePanel) {
+                            window.IntelligencePanel.init();
+                        }
+                    })
+                    .catch(err => console.error('[載入失敗]', err));
+            }
+        })();
+    </script>
+    <script src="/static/js/intelligence-panel.js"></script>
+    
+    <!-- Step 2: Sentiment Panel Components (載入順序重要) -->
+    <script src="/static/js/components/sentiment-gauge.js"></script>
+    <script src="/static/js/components/sentiment-stats.js"></script>
+    <script src="/static/js/components/provider-selector.js"></script>
+    <script src="/static/js/components/ai-thought-bubble.js"></script>
+    <script src="/static/js/sentiment-panel.js"></script>
+    
+    <!-- Lexicon Editor Module -->
+    <script src="/static/js/components/lexicon-editor.js"></script>
+    
+    <!-- Main Dashboard -->
     <script src="/static/js/dashboard.js"></script>
 </body>
 </html>

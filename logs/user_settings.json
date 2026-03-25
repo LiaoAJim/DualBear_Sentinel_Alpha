@@ -1,18 +1,25 @@
 {
-  "cash": "10000",
-  "stock": "20000",
-  "longterm": "10",
+  "cash": "30000",
+  "stock": "50000",
+  "longterm": "50",
   "provider": "rule",
   "leverage2": [
     {
-      "symbol": "00633L",
-      "name": "期富邦NASDAQ正2",
-      "value": 10010
+      "symbol": "0052",
+      "name": "0052",
+      "value": 3000
     },
     {
       "symbol": "00631L",
       "name": "期元大S&P 500正2",
-      "value": 2000
+      "value": 3000
     }
+  ],
+  "panelOrder": [
+    "intelligence-panel",
+    "sentiment-panel",
+    "decision-panel",
+    "asset-panel",
+    "backtest-panel"
   ]
 }

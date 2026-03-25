@@ -5,17 +5,27 @@ import asyncio
 import subprocess
 import argparse
 from datetime import datetime
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
-from fastapi.responses import RedirectResponse
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request, Body
+from fastapi.responses import RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from typing import List
 
 app = FastAPI(title="DualBear Sentinel Dashboard")
 
-# 設置靜態檔案與模板
-app.mount("/static", StaticFiles(directory="static"), name="static")
+# 設置靜態檔案與模板 (禁用緩存以便開發)
+app.mount("/static", StaticFiles(directory="static", html=True), name="static")
 templates = Jinja2Templates(directory="templates")
+
+# 禁用靜態文件緩存
+@app.middleware("http")
+async def no_cache(request, call_next):
+    response = await call_next(request)
+    if request.url.path.startswith("/static/"):
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+    return response
 
 class ConnectionManager:
     def __init__(self):
@@ -48,6 +58,11 @@ async def legacy_redirect():
 @app.get("/sentinel-alpha")
 async def get_dashboard(request: Request):
     return templates.TemplateResponse("dashboard.html", {"request": request})
+
+@app.get("/templates/intelligence-panel.html")
+async def get_intelligence_panel(request: Request):
+    """Serve intelligence panel component"""
+    return templates.TemplateResponse("intelligence-panel.html", {"request": request})
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
@@ -221,10 +236,39 @@ async def stop_recon():
         await manager.broadcast({"type": "log", "content": "🛑 偵察任務已被使用者強制中斷。", "level": "warning"})
         await manager.broadcast({"type": "status", "step": "idle"})
         return {"status": "stopped"}
-        return {"status": "nothing_to_stop"}
+    return {"status": "nothing_to_stop"}
 
 # --- 詞庫管理 API ---
 LEXICON_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config", "sentiment_lexicon.json")
+TARGETS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config", "targets.json")
+
+@app.get("/api/targets")
+async def get_targets():
+    """取得觀測標的清單"""
+    try:
+        if not os.path.exists(TARGETS_PATH):
+            return {"targets": []}
+        with open(TARGETS_PATH, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception as e:
+        return {"error": str(e), "targets": []}
+
+@app.post("/api/targets")
+async def save_targets(data: dict):
+    """儲存觀測標的清單"""
+    try:
+        print(f"[API] 收到 targets 儲存請求: {data}")
+        config_dir = os.path.dirname(TARGETS_PATH)
+        if not os.path.exists(config_dir):
+            os.makedirs(config_dir)
+        with open(TARGETS_PATH, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        print(f"[API] targets 已儲存到: {TARGETS_PATH}")
+        return {"status": "success"}
+    except Exception as e:
+        print(f"[API] targets 儲存失敗: {e}")
+        return {"status": "error", "message": str(e)}
+
 
 @app.get("/api/lexicon")
 async def get_lexicon():

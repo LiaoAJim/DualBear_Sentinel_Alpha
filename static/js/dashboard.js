@@ -164,7 +164,7 @@ document.addEventListener('DOMContentLoaded', () => {
         logsToRender.forEach((log) => {
             const entry = document.createElement('div');
             entry.className = 'log-entry info';
-            entry.innerHTML = `<span style="opacity: 0.5;">${log}</span>`;
+            entry.innerHTML = `<span class="log-timestamp">${log}</span>`;
             systemLogs.appendChild(entry);
         });
         if (sortDesc) {
@@ -190,7 +190,7 @@ document.addEventListener('DOMContentLoaded', () => {
         allLogs.push(`[${timeStr}] ${message}`);
 
         entry.className = `log-entry ${type}`;
-        entry.innerHTML = `<span style="opacity: 0.5;">[${timeStr}]</span> ${message}`;
+        entry.innerHTML = `<span class="log-timestamp">[${timeStr}]</span> ${message}`;
         
         if (sortDesc) {
             systemLogs.insertBefore(entry, systemLogs.firstChild);
@@ -211,6 +211,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const steps = ['idle', 'scouting', 'analyzing', 'reporting'];
         let activeFound = false;
         
+        // 進入偵察階段時，重置所有來源狀態
+        if (stepId === 'scouting' && typeof resetAllSources === 'function') {
+            resetAllSources();
+        }
+        
         steps.forEach(s => {
             const el = document.getElementById(`step-${s}`);
             if (s === stepId) {
@@ -224,74 +229,38 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    /**
+     * 更新情緒儀表 (委托給 SentimentGauge 模組)
+     * @param {number|null} score - 分數 (-1 到 1)
+     */
     function updateGauge(score) {
-        if (score === null || score === undefined) {
-            gaugeProgress.style.strokeDashoffset = CIRCUMFERENCE; // 清空進度
-            scoreValue.innerText = "N/A";
-            scoreLabel.innerText = "分析失敗";
-            scoreLabel.style.color = "var(--danger)";
-            return;
-        }
-
-        // 將 -1.0 ~ 1.0 的分數映射到 0 ~ 100%
-        const percentage = (score + 1) / 2;
-        const offset = CIRCUMFERENCE - (percentage * CIRCUMFERENCE);
-        gaugeProgress.style.strokeDashoffset = offset;
-        
-        // 數字動畫
-        scoreValue.innerText = score.toFixed(2);
-        
-        // 顏色動態變化 (利多偏藍, 利空偏紅)
-        if (score > 0.2) {
-            scoreLabel.innerText = "偏向利多";
-            scoreLabel.style.color = "var(--accent-blue)";
-        } else if (score < -0.2) {
-            scoreLabel.innerText = "偏向利空";
-            scoreLabel.style.color = "var(--accent-pink)";
+        // 委託給 SentimentGauge 模組處理
+        if (typeof SentimentGauge !== 'undefined') {
+            SentimentGauge.update(score);
         } else {
-            scoreLabel.innerText = "市場中性";
-            scoreLabel.style.color = "var(--text-dim)";
+            // 向後相容：舊版內聯實作
+            if (score === null || score === undefined) {
+                gaugeProgress.style.strokeDashoffset = CIRCUMFERENCE;
+                scoreValue.innerText = "N/A";
+                scoreLabel.innerText = "分析失敗";
+                scoreLabel.style.color = "var(--danger)";
+                return;
+            }
+            const percentage = (score + 1) / 2;
+            const offset = CIRCUMFERENCE - (percentage * CIRCUMFERENCE);
+            gaugeProgress.style.strokeDashoffset = offset;
+            scoreValue.innerText = score.toFixed(2);
+            if (score > 0.2) {
+                scoreLabel.innerText = "偏向利多";
+                scoreLabel.style.color = "var(--accent-blue)";
+            } else if (score < -0.2) {
+                scoreLabel.innerText = "偏向利空";
+                scoreLabel.style.color = "var(--accent-pink)";
+            } else {
+                scoreLabel.innerText = "市場中性";
+                scoreLabel.style.color = "var(--text-dim)";
+            }
         }
-    }
-
-    function addNewsItem(data) {
-        const emptyState = newsFeed.querySelector('.empty-state');
-        if (emptyState) emptyState.remove();
-
-        const item = document.createElement('div');
-        item.className = 'news-item';
-        
-        // 動態處理來源 Class
-        const sourceName = data.source || '未知來源';
-        const sourceClass = `source-${sourceName.toLowerCase().split(' ')[0]}`; // 取第一個詞
-        
-        item.innerHTML = `
-            <div class="news-item-header">
-                <span class="news-source ${sourceClass}">${sourceName}</span>
-                <span class="news-date">${data.date || '今'}</span>
-            </div>
-            <div class="news-title">${data.title}</div>
-            ${data.author ? `<div class="news-author"><i class="fas fa-user-circle"></i> ${data.author}</div>` : ''}
-        `;
-        
-        // 增加點擊跳轉功能 (同時兼容 link 與 url 欄位)
-        const targetUrl = data.url || data.link;
-        if (targetUrl) {
-            item.style.cursor = 'pointer';
-            item.title = "點擊開啟原始網頁";
-            item.onclick = () => {
-                window.open(targetUrl, '_blank');
-            };
-        }
-
-        newsFeed.prepend(item);
-        
-        // 限制顯示數量
-        if (newsFeed.children.length > 50) {
-            newsFeed.removeChild(newsFeed.lastChild);
-        }
-        
-        newsCount.innerText = `${newsFeed.children.length} 則偵察`;
     }
 
     clearLogsBtn.addEventListener('click', () => {
@@ -348,12 +317,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const suggestActionEl = document.getElementById('calc-suggest-action');
     const providerSelect = document.getElementById('provider-select'); // 🆕 AI 引擎選擇
 
-    // 🆕 監聽 AI 引擎變更並儲存
-    if (providerSelect) {
-        providerSelect.addEventListener('change', () => {
-            console.log('[設定] AI引擎已變更:', providerSelect.value);
+    // 🆕 監聽 AI 引擎變更並儲存 (委托給 ProviderSelector 模組)
+    if (typeof ProviderSelector !== 'undefined') {
+        ProviderSelector.onChange((provider) => {
+            console.log('[設定] AI引擎已變更:', provider);
             saveSettings();
         });
+    } else {
+        // 向後相容：舊版內聯實作
+        if (providerSelect) {
+            providerSelect.addEventListener('change', () => {
+                console.log('[設定] AI引擎已變更:', providerSelect.value);
+                saveSettings();
+            });
+        }
     }
 
     // 💾 持久化功能 (使用 API + localStorage 雙重備份)
@@ -407,7 +384,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (inputSpareCash) inputSpareCash.value = settings.cash || '500000';
                 if (inputCurrentStock) inputCurrentStock.value = settings.stock || '500000';
                 if (inputLongTerm) inputLongTerm.value = settings.longterm || '50';
-                if (providerSelect) providerSelect.value = settings.provider || 'auto';
+                // 使用 ProviderSelector 模組載入設定
+                if (typeof ProviderSelector !== 'undefined') {
+                    ProviderSelector.setProvider(settings.provider || 'auto');
+                } else if (providerSelect) {
+                    providerSelect.value = settings.provider || 'auto';
+                }
                 
                 // 🆕 載入欄位順序
                 if (settings.panelOrder && Array.isArray(settings.panelOrder)) {
@@ -554,6 +536,25 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (data.type === 'intelligence') {
             addNewsItem(data.content);
             const src = data.content.source || '未知';
+            // 標記來源為已完成 - 使用模糊匹配
+            let mappedSrc = null;
+            const srcLower = src.toLowerCase();
+            if (srcLower.includes('ptt')) mappedSrc = 'PTT';
+            else if (srcLower.includes('鉅亨') || srcLower.includes('anue') || srcLower.includes('cnyes')) mappedSrc = 'Anue';
+            else if (srcLower.includes('yahoo')) mappedSrc = 'Yahoo';
+            else if (srcLower.includes('udn') || srcLower.includes('經濟') || srcLower.includes('money.udn')) mappedSrc = 'UDN';
+            else if (srcLower.includes('moneydj')) mappedSrc = 'MoneyDJ';
+            else if (srcLower.includes('工商') || srcLower.includes('ctee')) mappedSrc = 'CTEE';
+            else if (srcLower.includes('天下')) mappedSrc = '天下';
+            else if (srcLower.includes('財訊')) mappedSrc = '財訊';
+            else if (srcLower.includes('cmoney')) mappedSrc = 'CMoney';
+            else if (srcLower.includes('東森')) mappedSrc = '東森';
+            else if (srcLower.includes('tvbs')) mappedSrc = 'TVBS';
+            else if (srcLower.includes('中央社') || srcLower.includes('cna')) mappedSrc = '中央社';
+            
+            if (mappedSrc) {
+                markSourceComplete(mappedSrc, true);
+            }
             addLog(`[${src}] 蒐集情報: ${data.content.title}`, 'scout');
         } else if (data.type === 'quant_data') {
             updateQuantUI(data);
@@ -580,12 +581,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 addLog(`📊 VIX: ${data.value} (${data.interpretation})`, 'scout');
             }
         } else if (data.type === 'analysis_start') {
-            aiThought.innerText = `正在解析："${data.title}"...`;
+            // 使用 AIThoughtBubble 模組
+            if (typeof AIThoughtBubble !== 'undefined') {
+                AIThoughtBubble.showAnalyzing(data.title);
+            } else {
+                aiThought.innerText = `正在解析："${data.title}"...`;
+            }
             addLog(`AI 分析中: ${data.title}`, 'ai');
         } else if (data.type === 'analysis_stats') {
-            if (statTotal) statTotal.innerText = data.total;
-            if (statSuccess) statSuccess.innerText = data.success;
-            if (statFailure) statFailure.innerText = data.failure;
+            // 使用 SentimentStats 模組
+            if (typeof SentimentStats !== 'undefined') {
+                SentimentStats.setFromData({
+                    total: data.total,
+                    success: data.success,
+                    failure: data.failure
+                });
+            } else {
+                // 向後相容
+                if (statTotal) statTotal.innerText = data.total;
+                if (statSuccess) statSuccess.innerText = data.success;
+                if (statFailure) statFailure.innerText = data.failure;
+            }
         } else if (data.type === 'analysis_result') {
             updateGauge(data.final_score);
             addLog(`最終情緒分數判定: ${data.final_score.toFixed(2)}`, 'success');
@@ -616,7 +632,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 addLog(`哨兵策略：量化指標介入修正了 ${adjText} 的倉位佈置。`, 'system');
             }
 
-            aiThought.innerText = "分析任務完成，哨兵持續監報量能中。";
+            // 使用 AIThoughtBubble 模組
+            if (typeof AIThoughtBubble !== 'undefined') {
+                AIThoughtBubble.showSuccess();
+            } else {
+                aiThought.innerText = "分析任務完成，哨兵持續監報量能中。";
+            }
             addLog(`決策生成完成: ${data.action}`, 'success');
             
             // 更新報告時間戳為當前時間
@@ -1066,7 +1087,32 @@ document.addEventListener('DOMContentLoaded', () => {
             // 渲染歷史智能
             if (data.intelligence) {
                 // 由後往前加，保持最新在上的視覺感
-                data.intelligence.forEach(item => addNewsItem(item));
+                const sourceSet = new Set();
+                data.intelligence.forEach(item => {
+                    addNewsItem(item);
+                    if (item.source) sourceSet.add(item.source);
+                });
+                // 標記所有出現過的來源為已完成 - 使用模糊匹配
+                sourceSet.forEach(src => {
+                    const srcLower = src.toLowerCase();
+                    let mappedSrc = null;
+                    if (srcLower.includes('ptt')) mappedSrc = 'PTT';
+                    else if (srcLower.includes('鉅亨') || srcLower.includes('anue') || srcLower.includes('cnyes')) mappedSrc = 'Anue';
+                    else if (srcLower.includes('yahoo')) mappedSrc = 'Yahoo';
+                    else if (srcLower.includes('udn') || srcLower.includes('經濟') || srcLower.includes('money.udn')) mappedSrc = 'UDN';
+                    else if (srcLower.includes('moneydj')) mappedSrc = 'MoneyDJ';
+                    else if (srcLower.includes('工商') || srcLower.includes('ctee')) mappedSrc = 'CTEE';
+                    else if (srcLower.includes('天下')) mappedSrc = '天下';
+                    else if (srcLower.includes('財訊')) mappedSrc = '財訊';
+                    else if (srcLower.includes('cmoney')) mappedSrc = 'CMoney';
+                    else if (srcLower.includes('東森')) mappedSrc = '東森';
+                    else if (srcLower.includes('tvbs')) mappedSrc = 'TVBS';
+                    else if (srcLower.includes('中央社') || srcLower.includes('cna')) mappedSrc = '中央社';
+                    
+                    if (mappedSrc) {
+                        markSourceComplete(mappedSrc, true);
+                    }
+                });
             }
             
             // 渲染歷史決策
@@ -1076,15 +1122,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 decisionAction.innerText = data.decision.action;
                 targetPosition.innerText = data.decision.target_position;
                 decisionNotes.innerText = data.decision.recon_notes;
-                aiThought.innerText = `讀取歷史檔案 [${date}] 完成。`;
+                // 使用 AIThoughtBubble 模組
+                if (typeof AIThoughtBubble !== 'undefined') {
+                    AIThoughtBubble.setMessage(`讀取歷史檔案 [${date}] 完成。`);
+                } else {
+                    aiThought.innerText = `讀取歷史檔案 [${date}] 完成。`;
+                }
             }
             
             // 更新分析統計（如果歷史檔案有這個資料）
             if (data.analysis_stats) {
                 const stats = data.analysis_stats;
-                if (statTotal) statTotal.innerText = stats.total || 0;
-                if (statSuccess) statSuccess.innerText = stats.success || 0;
-                if (statFailure) statFailure.innerText = stats.failure || 0;
+                // 使用 SentimentStats 模組
+                if (typeof SentimentStats !== 'undefined') {
+                    SentimentStats.setFromData(stats);
+                } else {
+                    if (statTotal) statTotal.innerText = stats.total || 0;
+                    if (statSuccess) statSuccess.innerText = stats.success || 0;
+                    if (statFailure) statFailure.innerText = stats.failure || 0;
+                }
                 addLog(`📊 歷史統計: 總計 ${stats.total || 0} / 成功 ${stats.success || 0} / 失敗 ${stats.failure || 0}`, 'scout');
             }
             
@@ -1711,10 +1767,10 @@ window.addEventListener('click', (e) => {
 });
 
 // ═══════════════════════════════════════════════════════════════
-// 📖 詞庫編輯器邏輯
+// 📖 詞庫編輯器邏輯 (委托給 LexiconEditor 模組)
 // ═══════════════════════════════════════════════════════════════
 
-// 取得 DOM 元素
+// 向後相容：舊版 DOM 元素引用
 const lexiconModal = document.getElementById('lexicon-modal');
 const btnLexicon = document.getElementById('btn-lexicon');
 const closeLexicon = document.getElementById('close-lexicon');
@@ -1727,8 +1783,21 @@ const lexiconQuickAdd = document.getElementById('lexicon-quick-add');
 const btnAddPositive = document.getElementById('btn-add-positive');
 const btnAddNegative = document.getElementById('btn-add-negative');
 
-// 載入指定分類的詞彙（需在初始化之前定義）
+// 綁定詞庫回調到日誌系統
+if (typeof LexiconEditor !== 'undefined') {
+    LexiconEditor.onSave((data) => {
+        addLog(`✅ 詞庫已儲存: ${data.category} (${data.count} 個詞)`, 'success');
+    });
+}
+
+// 載入指定分類的詞彙（向後相容）
 async function loadLexiconCategory() {
+    // 委託給 LexiconEditor 模組
+    if (typeof LexiconEditor !== 'undefined') {
+        return LexiconEditor.loadCategory();
+    }
+    
+    // 舊版內聯實作 (fallback)
     const category = lexiconCategory ? lexiconCategory.value : 'bullish_extreme';
     
     try {
@@ -1752,18 +1821,28 @@ async function loadLexiconCategory() {
     }
 }
 
-// 開啟詞庫編輯器
+// 開啟詞庫編輯器 (向後相容)
 if (btnLexicon) {
     btnLexicon.onclick = () => {
-        lexiconModal.classList.add('show');
-        loadLexiconCategory();
+        if (typeof LexiconEditor !== 'undefined') {
+            LexiconEditor.open();
+        } else {
+            lexiconModal.classList.add('show');
+            loadLexiconCategory();
+        }
     };
 }
 
-// 關閉詞庫編輯器
+// 開啟詞庫編輯器 (Step 2 區域按鈕) - 由 LexiconEditor 自動處理
+
+// 關閉詞庫編輯器 (向後相容)
 if (closeLexicon) {
     closeLexicon.onclick = () => {
-        lexiconModal.classList.remove('show');
+        if (typeof LexiconEditor !== 'undefined') {
+            LexiconEditor.close();
+        } else {
+            lexiconModal.classList.remove('show');
+        }
     };
 }
 
@@ -1781,51 +1860,59 @@ if (lexiconCategory) {
     lexiconCategory.onchange = loadLexiconCategory;
 }
 
-// 儲存詞庫
-if (btnSaveLexicon) {
-    btnSaveLexicon.onclick = async () => {
-        const category = lexiconCategory ? lexiconCategory.value : 'bullish_extreme';
-        const wordsText = lexiconWords ? lexiconWords.value : '';
-        
-        // 解析詞彙（每行一個）
-        const words = wordsText
-            .split('\n')
-            .map(w => w.trim())
-            .filter(w => w.length > 0);
-        
-        try {
-            const response = await fetch(`/api/lexicon/${category}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ words: words })
-            });
-            
-            const result = await response.json();
-            
-            if (result.status === 'success') {
-                addLog(`✅ 詞庫已儲存: ${result.message}`, 'success');
-                loadLexiconCategory(); // 重新載入
-            } else {
-                addLog(`❌ 儲存失敗: ${result.message}`, 'error');
-            }
-        } catch (err) {
-            addLog(`❌ 儲存失敗: ${err}`, 'error');
-        }
-    };
-}
+// 儲存詞庫 (由 LexiconEditor 自動處理，回調已在上方綁定)
 
 // 重新載入詞庫
 if (btnReloadLexicon) {
-    btnReloadLexicon.onclick = loadLexiconCategory;
+    btnReloadLexicon.onclick = () => {
+        // 視覺回饋
+        const originalText = btnReloadLexicon.innerHTML;
+        btnReloadLexicon.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 載入中...';
+        btnReloadLexicon.disabled = true;
+        
+        loadLexiconCategory();
+        
+        setTimeout(() => {
+            btnReloadLexicon.innerHTML = '<i class="fas fa-check"></i> 已載入!';
+            setTimeout(() => {
+                btnReloadLexicon.innerHTML = originalText;
+                btnReloadLexicon.disabled = false;
+            }, 800);
+        }, 300);
+    };
 }
 
 // 快速添加詞彙
 if (btnAddPositive) {
-    btnAddPositive.onclick = () => quickAddWord('positive');
+    btnAddPositive.onclick = () => {
+        // 視覺回饋
+        const originalText = btnAddPositive.innerHTML;
+        btnAddPositive.innerHTML = '<i class="fas fa-check"></i> 已添加!';
+        btnAddPositive.style.background = 'rgba(16,185,129,0.5)';
+        
+        quickAddWord('positive');
+        
+        setTimeout(() => {
+            btnAddPositive.innerHTML = originalText;
+            btnAddPositive.style.background = '';
+        }, 1000);
+    };
 }
 
 if (btnAddNegative) {
-    btnAddNegative.onclick = () => quickAddWord('negative');
+    btnAddNegative.onclick = () => {
+        // 視覺回饋
+        const originalText = btnAddNegative.innerHTML;
+        btnAddNegative.innerHTML = '<i class="fas fa-check"></i> 已添加!';
+        btnAddNegative.style.background = 'rgba(239,68,68,0.5)';
+        
+        quickAddWord('negative');
+        
+        setTimeout(() => {
+            btnAddNegative.innerHTML = originalText;
+            btnAddNegative.style.background = '';
+        }, 1000);
+    };
 }
 
 // Enter 鍵快速添加

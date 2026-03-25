@@ -471,3 +471,72 @@ master_script.py: error: argument --preferred-provider: invalid choice: 'rule' (
 usage: master_script.py [-h] [--port PORT]
                         [--preferred-provider {auto,gemini,nvidia,manus}]
 master_script.py: error: argument --preferred-provider: invalid choice: 'rule' (choose from 'auto', 'gemini', 'nvidia', 'manus')
+Traceback (most recent call last):
+  File "E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\master_script.py", line 9, in <module>
+    from core.crawler import DataScout
+  File "E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\core\crawler.py", line 2, in <module>
+    from bs4 import BeautifulSoup
+ModuleNotFoundError: No module named 'bs4'
+Traceback (most recent call last):
+  File "E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\master_script.py", line 9, in <module>
+    from core.crawler import DataScout
+  File "E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\core\crawler.py", line 2, in <module>
+    from bs4 import BeautifulSoup
+ModuleNotFoundError: No module named 'bs4'
+Traceback (most recent call last):
+  File "E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\master_script.py", line 9, in <module>
+    from core.crawler import DataScout
+  File "E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\core\crawler.py", line 2, in <module>
+    from bs4 import BeautifulSoup
+ModuleNotFoundError: No module named 'bs4'
+Traceback (most recent call last):
+  File "E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\master_script.py", line 9, in <module>
+    from core.crawler import DataScout
+  File "E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\core\crawler.py", line 2, in <module>
+    from bs4 import BeautifulSoup
+ModuleNotFoundError: No module named 'bs4'
+Traceback (most recent call last):
+  File "E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\master_script.py", line 9, in <module>
+    from core.crawler import DataScout
+  File "E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\core\crawler.py", line 2, in <module>
+    from bs4 import BeautifulSoup
+ModuleNotFoundError: No module named 'bs4'
+Traceback (most recent call last):
+  File "E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\master_script.py", line 9, in <module>
+    from core.crawler import DataScout
+  File "E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\core\crawler.py", line 2, in <module>
+    from bs4 import BeautifulSoup
+ModuleNotFoundError: No module named 'bs4'
+Traceback (most recent call last):
+  File "E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\master_script.py", line 9, in <module>
+    from core.crawler import DataScout
+  File "E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\core\crawler.py", line 2, in <module>
+    from bs4 import BeautifulSoup
+ModuleNotFoundError: No module named 'bs4'
+Traceback (most recent call last):
+  File "E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\master_script.py", line 9, in <module>
+    from core.crawler import DataScout
+  File "E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\core\crawler.py", line 2, in <module>
+    from bs4 import BeautifulSoup
+ModuleNotFoundError: No module named 'bs4'
+Traceback (most recent call last):
+  File "E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\master_script.py", line 9, in <module>
+    from core.crawler import DataScout
+  File "E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\core\crawler.py", line 2, in <module>
+    from bs4 import BeautifulSoup
+ModuleNotFoundError: No module named 'bs4'
+Traceback (most recent call last):
+  File "E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\master_script.py", line 9, in <module>
+    from core.crawler import DataScout
+  File "E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\core\crawler.py", line 2, in <module>
+    from bs4 import BeautifulSoup
+ModuleNotFoundError: No module named 'bs4'
+E:\Google Drive\_DualBear\_Dev\DualBear_Sentinel_Alpha\core\analyzer.py:13: FutureWarning: 
+
+All support for the `google.generativeai` package has ended. It will no longer be receiving 
+updates or bug fixes. Please switch to the `google.genai` package as soon as possible.
+See README for more details:
+
+https://github.com/google-gemini/deprecated-generative-ai-python/blob/main/README.md
+
+  import google.generativeai as genai

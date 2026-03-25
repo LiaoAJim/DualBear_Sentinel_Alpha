@@ -255,8 +255,8 @@ header {
 main {
     flex: 1;
     display: grid;
-    /* 五欄最小 350px，確保內容不擁擠 */
-    grid-template-columns: repeat(5, minmax(350px, 1fr));
+    /* 五欄最小 360px，確保內容不擁擠 */
+    grid-template-columns: repeat(5, minmax(360px, 1fr));
     width: 100%; 
     gap: 16px;
     padding: 15px 20px;
@@ -286,10 +286,10 @@ main {
 }
 
 .panel.selected {
-    border-color: var(--accent-blue);
-    box-shadow: 0 0 30px rgba(0, 210, 255, 0.2), inset 0 0 15px rgba(0, 210, 255, 0.05);
-    background: rgba(0, 210, 255, 0.03);
-    transform: scale(0.995);
+    border: 2px solid var(--accent-blue);
+    box-shadow: 0 0 15px rgba(0, 210, 255, 0.25);
+    background: rgba(18, 22, 28, 0.95);
+    transform: scale(1);
     z-index: 5;
 }
 
@@ -726,6 +726,12 @@ main {
 
 .log-entry.system { color: var(--accent-blue); border-color: var(--accent-blue); }
 .log-entry.info { color: var(--text-dim); }
+
+.log-timestamp {
+    opacity: 0.9;
+    color: var(--text-main);
+    font-weight: 600;
+}
 .log-entry.success { color: var(--success); }
 .log-entry.warning { color: var(--warning); }
 .log-entry.error { color: var(--danger); font-weight: bold; }

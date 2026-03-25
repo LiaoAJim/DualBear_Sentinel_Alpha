@@ -9,4 +9,7 @@ lxml
 fastapi
 uvicorn
 jinja2
+PyQt6-WebEngine
+pytest
+pytest-mock
 

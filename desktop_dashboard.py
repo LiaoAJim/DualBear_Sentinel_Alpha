@@ -4,6 +4,85 @@ import threading
 import subprocess
 import time
 import ctypes
+
+
+# ═══════════════════════════════════════════
+# 💡 自檢機制：依賴完整性保護
+# 說明：確保所有必要模組已安裝，若缺失則自動安裝。
+# 為何使用：避免在新環境執行時直接崩潰。
+# ═══════════════════════════════════════════
+def _get_file_hash(filepath):
+    """計算檔案的 SHA256 hash"""
+    import hashlib
+    with open(filepath, "rb") as f:
+        return hashlib.sha256(f.read()).hexdigest()
+
+def _get_record_path():
+    """取得紀錄檔路徑"""
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)), ".sentinel_deps")
+
+def _load_record():
+    """讀取依賴檢查紀錄"""
+    record_file = _get_record_path()
+    if not os.path.exists(record_file):
+        return {}
+    try:
+        import json
+        with open(record_file, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except:
+        return {}
+
+def _save_record(req_hash):
+    """儲存依賴檢查紀錄"""
+    import json
+    from datetime import datetime
+    record_file = _get_record_path()
+    with open(record_file, "w", encoding="utf-8") as f:
+        json.dump({
+            "requirements_hash": req_hash,
+            "last_check": datetime.now().isoformat()
+        }, f, indent=2)
+
+def ensure_dependencies():
+    """自動檢查並安裝 requirements.txt 中缺失的套件（智慧快取）"""
+    req_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "requirements.txt")
+    if not os.path.exists(req_file):
+        return
+    
+    # 計算目前 requirements.txt 的 hash
+    current_hash = _get_file_hash(req_file)
+    record = _load_record()
+    
+    # 比對 hash：若相同表示套件無需重新檢查
+    if record.get("requirements_hash") == current_hash:
+        return  # 跳過，直接啟動
+    
+    # hash 不同或有新電腦 → 執行依賴檢查
+    print("📦 檢查依賴套件...")
+    with open(req_file, "r", encoding="utf-8") as f:
+        packages = [line.strip() for line in f if line.strip() and not line.startswith("#")]
+    
+    for pkg in packages:
+        pip_name = pkg.split("==")[0]
+        try:
+            __import__(pip_name.replace("-", "_").replace(".", "_"))
+        except ImportError:
+            print(f"   安裝缺失套件: {pkg} ...")
+            subprocess.check_call(
+                [sys.executable, "-m", "pip", "install", pkg, "--quiet"],
+                stdout=subprocess.DEVNULL
+            )
+            print(f"   ✅ {pkg} 安裝完成")
+    
+    # 更新紀錄
+    _save_record(current_hash)
+    print("✅ 依賴檢查完成")
+
+ensure_dependencies()
+
+
+# 依賴檢查通過後，再安全地載入 UI 模組
 from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QFrame, QHBoxLayout, QPushButton, QLabel
 from PyQt6.QtCore import Qt, QUrl, QPoint, QSize
 from PyQt6.QtWebEngineWidgets import QWebEngineView
