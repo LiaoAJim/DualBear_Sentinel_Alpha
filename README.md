@@ -12,6 +12,12 @@
 - **自動化戰略對齊**：每日定時同步股價與情緒，計算「情緒背離」信號。
 - **火力控制系統 (Position Sizing)**：根據情緒總分自動建議 0% - 100% 的倉位管理。
 
+## 🔎 Step 3 量化來源現況
+- 正式來源目前以 `台期所 / TWSE`、`WantGoo`、`CBOE / Yahoo Finance` 為主。
+- `台灣 VIX` 已改由台期所 `vixMinNew` 為主來源，TWSE `MI_VIX` 為備援。
+- `統一 / 凱基 / MoneyDJ` 目前僅列為研究中的備援線索，尚未接入正式決策。
+- 備援來源研究筆記見 [docs/quant_backup_sources.md](docs/quant_backup_sources.md)。
+
 ## 🏗️ 系統架構 (Architecture)
 
 

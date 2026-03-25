@@ -241,6 +241,8 @@ header {
     font-size: 11px;
     font-weight: 700;
     text-transform: uppercase;
+    white-space: nowrap;
+    text-align: center;
 }
 
 .step-line {

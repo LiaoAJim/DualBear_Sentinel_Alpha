@@ -170,3 +170,96 @@
 [31mERROR[0m:    [Errno 10048] error while attempting to bind on address ('0.0.0.0', 8001): 一次只能用一個通訊端位址 (通訊協定/網路位址/連接埠)。
 [32mINFO[0m:     Waiting for application shutdown.
 [32mINFO[0m:     Application shutdown complete.
+[32mINFO[0m:     Started server process [[36m7344[0m]
+[32mINFO[0m:     Waiting for application startup.
+[32mINFO[0m:     Application startup complete.
+[32mINFO[0m:     Uvicorn running on [1mhttp://0.0.0.0:8001[0m (Press CTRL+C to quit)
+[32mINFO[0m:     127.0.0.1:58097 - "WebSocket /ws" [accepted]
+[32mINFO[0m:     connection open
+[32mINFO[0m:     connection closed
+[32mINFO[0m:     127.0.0.1:58763 - "WebSocket /ws" [accepted]
+[32mINFO[0m:     connection open
+[32mINFO[0m:     connection closed
+[32mINFO[0m:     127.0.0.1:58854 - "WebSocket /ws" [accepted]
+[32mINFO[0m:     connection open
+[32mINFO[0m:     connection closed
+[32mINFO[0m:     127.0.0.1:58856 - "WebSocket /ws" [accepted]
+[32mINFO[0m:     connection open
+[32mINFO[0m:     connection closed
+[32mINFO[0m:     127.0.0.1:58858 - "WebSocket /ws" [accepted]
+[32mINFO[0m:     connection open
+[32mINFO[0m:     connection closed
+[32mINFO[0m:     127.0.0.1:58860 - "WebSocket /ws" [accepted]
+[32mINFO[0m:     connection open
+[32mINFO[0m:     connection closed
+[32mINFO[0m:     127.0.0.1:58938 - "WebSocket /ws" [accepted]
+[32mINFO[0m:     connection open
+[32mINFO[0m:     connection closed
+[32mINFO[0m:     127.0.0.1:59378 - "WebSocket /ws" [accepted]
+[32mINFO[0m:     connection open
+[32mINFO[0m:     connection closed
+[32mINFO[0m:     127.0.0.1:59397 - "WebSocket /ws" [accepted]
+[32mINFO[0m:     connection open
+[32mINFO[0m:     connection closed
+[32mINFO[0m:     127.0.0.1:60041 - "WebSocket /ws" [accepted]
+[32mINFO[0m:     connection open
+[32mINFO[0m:     connection closed
+[32mINFO[0m:     127.0.0.1:60056 - "WebSocket /ws" [accepted]
+[32mINFO[0m:     connection open
+[32mINFO[0m:     connection closed
+[32mINFO[0m:     127.0.0.1:60459 - "WebSocket /ws" [accepted]
+[32mINFO[0m:     connection open
+[32mINFO[0m:     connection closed
+[32mINFO[0m:     127.0.0.1:60585 - "WebSocket /ws" [accepted]
+[32mINFO[0m:     connection open
+[32mINFO[0m:     connection closed
+[32mINFO[0m:     127.0.0.1:60613 - "WebSocket /ws" [accepted]
+[32mINFO[0m:     connection open
+[32mINFO[0m:     connection closed
+[32mINFO[0m:     127.0.0.1:61078 - "WebSocket /ws" [accepted]
+[32mINFO[0m:     connection open
+[32mINFO[0m:     connection closed
+[32mINFO[0m:     127.0.0.1:61093 - "WebSocket /ws" [accepted]
+[32mINFO[0m:     connection open
+[32mINFO[0m:     connection closed
+[32mINFO[0m:     127.0.0.1:61121 - "WebSocket /ws" [accepted]
+[32mINFO[0m:     connection open
+[32mINFO[0m:     connection closed
+[32mINFO[0m:     127.0.0.1:61607 - "WebSocket /ws" [accepted]
+[32mINFO[0m:     connection open
+[32mINFO[0m:     connection closed
+[32mINFO[0m:     127.0.0.1:61625 - "WebSocket /ws" [accepted]
+[32mINFO[0m:     connection open
+[32mINFO[0m:     connection closed
+[32mINFO[0m:     127.0.0.1:61632 - "WebSocket /ws" [accepted]
+[32mINFO[0m:     connection open
+[32mINFO[0m:     connection closed
+[32mINFO[0m:     127.0.0.1:62052 - "WebSocket /ws" [accepted]
+[32mINFO[0m:     connection open
+[32mINFO[0m:     connection closed
+[32mINFO[0m:     127.0.0.1:62565 - "WebSocket /ws" [accepted]
+[32mINFO[0m:     connection open
+[32mINFO[0m:     connection closed
+[32mINFO[0m:     127.0.0.1:62573 - "WebSocket /ws" [accepted]
+[32mINFO[0m:     connection open
+[32mINFO[0m:     connection closed
+[32mINFO[0m:     127.0.0.1:62607 - "WebSocket /ws" [accepted]
+[32mINFO[0m:     connection open
+[32mINFO[0m:     connection closed
+[32mINFO[0m:     127.0.0.1:62649 - "WebSocket /ws" [accepted]
+[32mINFO[0m:     connection open
+[32mINFO[0m:     connection closed
+[32mINFO[0m:     127.0.0.1:62697 - "WebSocket /ws" [accepted]
+[32mINFO[0m:     connection open
+[32mINFO[0m:     connection closed
+[32mINFO[0m:     127.0.0.1:62728 - "WebSocket /ws" [accepted]
+[32mINFO[0m:     connection open
+[32mINFO[0m:     connection closed
+[32mINFO[0m:     127.0.0.1:62730 - "WebSocket /ws" [accepted]
+[32mINFO[0m:     connection open
+[32mINFO[0m:     connection closed
+[32mINFO[0m:     127.0.0.1:62781 - "WebSocket /ws" [accepted]
+[32mINFO[0m:     connection open
+[32mINFO[0m:     connection closed
+[32mINFO[0m:     127.0.0.1:62784 - "WebSocket /ws" [accepted]
+[32mINFO[0m:     connection open

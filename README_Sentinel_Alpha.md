@@ -4,6 +4,15 @@
 
 ---
 
+## 🔎 量化來源現況
+
+- Step 3 正式量化來源目前以 `台期所 / TWSE`、`WantGoo`、`CBOE / Yahoo Finance` 為主。
+- `台灣 VIX` 主來源為台期所 `vixMinNew`，TWSE `MI_VIX` 為備援。
+- `統一 / 凱基 / MoneyDJ` 目前仍是研究中的備援線索，尚未納入正式決策。
+- 詳細研究紀錄見 [docs/quant_backup_sources.md](docs/quant_backup_sources.md)。
+
+---
+
 ## 📡 1. 情報偵察網 (Intelligence Sources)
 系統透過「廣域偵察特工」同時監控以下五大真理與情緒來源：
 
