@@ -1,3 +1,5 @@
+import json
+import os
 import requests
 from bs4 import BeautifulSoup
 from datetime import datetime
@@ -22,6 +24,9 @@ class QuantSentimentScout:
         self.last_errors = {}
         self.last_attempts = {}
         self.last_margin_market = {}
+        self.xq_margin_codes = {
+            "listed": "TSE.TW-FinanceMaintenRatio",
+        }
         self.margin_xpaths = {
             "pscnet": {
                 "listed": "/html/body/div[1]/div/div[1]/div[2]/div[2]/div/div[3]/div/div/div/div/div[2]/div/div/div[2]/div[2]/table/tbody/tr[2]/td[6]",
@@ -81,6 +86,7 @@ class QuantSentimentScout:
         indicators['margin_maintenance_ratio'], indicators['_sources']['margin_maintenance_ratio'] = self._fetch_with_fallback(
             'margin_maintenance_ratio',
             [
+                ('xq_margin_bridge', self._get_xq_margin_bridge),
                 ('wantgoo_margin_page', self._get_wantgoo_margin),
                 # 券商頁目前僅保留作為研究中的靜態備援探測，
                 # 詳見 docs/quant_backup_sources.md。
@@ -108,6 +114,51 @@ class QuantSentimentScout:
         print("[OK] 全量化指標採集完成。")
         return indicators
 
+    def _get_xq_margin_bridge(self):
+        """
+        XQ 融維橋接層：
+        目前程式無法直接讀取 `=XQFAP|Quote!` 公式，
+        因此改走本機快照 JSON 橋接。
+        目前依使用者規則，Step 3 只看上市融維。
+        """
+        snapshot_path = os.getenv(
+            "XQ_MARGIN_SNAPSHOT_PATH",
+            os.path.join("logs", "xq_margin_snapshot.json")
+        )
+        if not os.path.exists(snapshot_path):
+            self.last_errors['margin_maintenance_ratio'] = (
+                "XQ bridge 未提供快照檔；可建立 logs/xq_margin_snapshot.json 並填入 listed。"
+            )
+            return None
+
+        try:
+            with open(snapshot_path, "r", encoding="utf-8") as f:
+                payload = json.load(f)
+
+            listed = self._extract_first_float(str(payload.get("listed", "")))
+            market = self._extract_first_float(str(payload.get("market", "")))
+
+            if self._looks_like_margin_ratio(listed):
+                self._record_margin_market_values(
+                    'xq_margin_bridge',
+                    market_values={"listed": listed},
+                    aggregate=listed
+                )
+                print(f"   ∟ [XQ Bridge] 上市融維: {listed}%")
+                return listed
+
+            if self._looks_like_margin_ratio(market):
+                self._record_margin_market_values('xq_margin_bridge', aggregate=market)
+                print(f"   ∟ [XQ Bridge] 大盤融維: {market}%")
+                return market
+
+            self.last_errors['margin_maintenance_ratio'] = (
+                "XQ bridge 快照已讀取，但 listed / market 都沒有可用融維數值。"
+            )
+        except Exception as e:
+            self.last_errors['margin_maintenance_ratio'] = f"XQ bridge 讀取失敗: {str(e)}"
+        return None
+
     def _fetch_with_fallback(self, key, fetchers):
         attempts = []
         self.last_errors.pop(key, None)
@@ -116,6 +167,7 @@ class QuantSentimentScout:
             value = fetcher()
             if value is not None:
                 attempts.append({'source': source_name, 'status': 'success'})
+                self.last_errors.pop(key, None)
                 self.last_attempts[key] = attempts
                 return value, source_name
 

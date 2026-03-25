@@ -103,6 +103,58 @@ async def update_data(data: dict):
 # --- 歷史數據 API ---
 HISTORY_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs", "history")
 
+
+def _pick_first_value(*values):
+    for value in values:
+        if value is not None and value != "":
+            return value
+    return None
+
+
+def _extract_history_step3_summary(data):
+    decision = data.get("decision", {}) or {}
+    quant_data = data.get("quant_data", {}) or {}
+    display_quant_data = data.get("display_quant_data", {}) or {}
+    selected_variant = data.get("selected_variant")
+    selected_decision = ((data.get("decision_variants", {}) or {}).get(selected_variant) or {}) if selected_variant else {}
+
+    return {
+        "action": _pick_first_value(
+            decision.get("action"),
+            selected_decision.get("action")
+        ),
+        "target_position": _pick_first_value(
+            decision.get("target_position"),
+            selected_decision.get("target_position")
+        ),
+        "strategy_label": _pick_first_value(
+            decision.get("strategy_label"),
+            selected_decision.get("strategy_label")
+        ),
+        "risk_status": _pick_first_value(
+            decision.get("risk_status"),
+            selected_decision.get("risk_status")
+        ),
+        "margin_maintenance_ratio": _pick_first_value(
+            quant_data.get("margin_maintenance_ratio"),
+            display_quant_data.get("margin_maintenance_ratio")
+        ),
+        "retail_long_short_ratio": _pick_first_value(
+            quant_data.get("retail_long_short_ratio"),
+            display_quant_data.get("retail_long_short_ratio")
+        ),
+        "vixtwn": _pick_first_value(
+            quant_data.get("vixtwn"),
+            display_quant_data.get("vixtwn")
+        ),
+        "vixus": _pick_first_value(
+            quant_data.get("vixus"),
+            quant_data.get("us_vix"),
+            display_quant_data.get("vixus"),
+            display_quant_data.get("us_vix")
+        )
+    }
+
 @app.get("/api/history")
 async def list_history():
     """回傳所有可用的歷史日期清單（含統計摘要）"""
@@ -121,7 +173,6 @@ async def list_history():
                 data = json.load(f)
                 stats = data.get("analysis_stats", {})
                 decision = data.get("decision", {}) or {}
-                quant_data = data.get("quant_data", {}) or {}
                 history_list.append({
                     "date": date,
                     "intelligence_count": data.get("intelligence_count", 0),
@@ -131,16 +182,7 @@ async def list_history():
                         "failure": stats.get("failure", 0)
                     },
                     "sentiment_score": decision.get("sentiment_score"),
-                    "step3": {
-                        "action": decision.get("action"),
-                        "target_position": decision.get("target_position"),
-                        "strategy_label": decision.get("strategy_label"),
-                        "risk_status": decision.get("risk_status"),
-                        "margin_maintenance_ratio": quant_data.get("margin_maintenance_ratio"),
-                        "retail_long_short_ratio": quant_data.get("retail_long_short_ratio"),
-                        "vixtwn": quant_data.get("vixtwn"),
-                        "vixus": quant_data.get("vixus")
-                    }
+                    "step3": _extract_history_step3_summary(data)
                 })
         except:
             history_list.append({"date": date})

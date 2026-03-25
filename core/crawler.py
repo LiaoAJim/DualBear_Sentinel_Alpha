@@ -12,6 +12,14 @@ class DataScout:
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
         }
         self.ptt_cookies = {'over18': '1'}
+        self.last_source_status = {}
+
+    def _set_source_status(self, source_key, success, error=None, count=0):
+        self.last_source_status[source_key] = {
+            'success': success,
+            'error': error,
+            'count': count
+        }
 
     def get_ptt_stock(self, limit=10):
         url = "https://www.ptt.cc/bbs/Stock/index.html"
@@ -30,9 +38,11 @@ class DataScout:
                         'source': 'PTT Stock'
                     })
             print(f"[成功] PTT 獲取 {len(articles)} 條")
+            self._set_source_status('ptt', True, count=len(articles))
             return articles
         except Exception as e: 
             print(f"[錯誤] PTT 失敗: {e}")
+            self._set_source_status('ptt', False, error=str(e), count=0)
             return []
 
     def get_anue_news(self, limit=10):
@@ -57,9 +67,11 @@ class DataScout:
                 'source': '鉅亨網 ANUE'
             } for item in items if 'title' in item]
             print(f"[成功] 鉅亨 獲取 {len(out)} 條")
+            self._set_source_status('anue', True, count=len(out))
             return out
         except Exception as e:
             print(f"[錯誤] 鉅亨 失敗: {e}")
+            self._set_source_status('anue', False, error=str(e), count=0)
             return []
 
     def get_yahoo_news(self, limit=10):
@@ -90,9 +102,11 @@ class DataScout:
                             break
             
             print(f"[成功] Yahoo 獲取 {len(articles)} 條")
+            self._set_source_status('yahoo', True, count=len(articles[:limit]))
             return articles[:limit]
         except Exception as e:
             print(f"[錯誤] Yahoo 失敗: {e}")
+            self._set_source_status('yahoo', False, error=str(e), count=0)
             return []
 
     def get_udn_news(self, limit=10):
@@ -122,14 +136,17 @@ class DataScout:
                         break
             
             print(f"[成功] UDN 獲取 {len(articles)} 條")
+            self._set_source_status('udn', True, count=len(articles))
             return articles
         except Exception as e:
             print(f"[錯誤] UDN 失敗: {e}")
+            self._set_source_status('udn', False, error=str(e), count=0)
             return []
 
     def fetch_all_news(self):
         """一鍵啟動全網域偵察計畫"""
         print("[START] 廣域偵察計畫啟動...")
+        self.last_source_status = {}
         all_news = []
         all_news.extend(self.get_ptt_stock(6))
         all_news.extend(self.get_anue_news(8))

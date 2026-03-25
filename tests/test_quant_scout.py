@@ -194,6 +194,17 @@ class TestQuantSentimentScout:
         })
         assert value == 178.51
 
+    def test_get_xq_margin_bridge_uses_listed_only(self, tmp_path):
+        snapshot = tmp_path / "xq_margin_snapshot.json"
+        snapshot.write_text('{"listed": 178.51, "otc": 176.22, "market": 177.40}', encoding='utf-8')
+
+        with patch.dict(os.environ, {"XQ_MARGIN_SNAPSHOT_PATH": str(snapshot)}):
+            result = self.scout._get_xq_margin_bridge()
+
+        assert result == 178.51
+        assert self.scout.last_margin_market['listed'] == 178.51
+        assert 'otc' not in self.scout.last_margin_market or self.scout.last_margin_market['otc'] is None
+
     def test_build_margin_market_breakdown_uses_aggregate_source(self):
         self.scout._record_margin_market_values('wantgoo_margin_page', aggregate=178.51)
         result = self.scout._build_margin_market_breakdown({
