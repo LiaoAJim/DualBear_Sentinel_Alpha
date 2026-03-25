@@ -57,10 +57,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         
         updateOrderButtonsState();
-        if (selectedPanelId) {
-            const title = document.getElementById(id).querySelector('.panel-title').innerText.trim();
-            addLog(`📍 已選好欄位：${title}，可使用左/右按鈕調整其順序。`, 'system');
-        }
     }
 
     function movePanel(direction) {
