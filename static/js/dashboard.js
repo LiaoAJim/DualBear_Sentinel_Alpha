@@ -211,11 +211,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const steps = ['idle', 'scouting', 'analyzing', 'reporting'];
         let activeFound = false;
         
-        // 進入偵察階段時，重置所有來源狀態
-        if (stepId === 'scouting' && typeof resetAllSources === 'function') {
-            resetAllSources();
-        }
-        
         steps.forEach(s => {
             const el = document.getElementById(`step-${s}`);
             if (s === stepId) {
@@ -536,25 +531,6 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (data.type === 'intelligence') {
             addNewsItem(data.content);
             const src = data.content.source || '未知';
-            // 標記來源為已完成 - 使用模糊匹配
-            let mappedSrc = null;
-            const srcLower = src.toLowerCase();
-            if (srcLower.includes('ptt')) mappedSrc = 'PTT';
-            else if (srcLower.includes('鉅亨') || srcLower.includes('anue') || srcLower.includes('cnyes')) mappedSrc = 'Anue';
-            else if (srcLower.includes('yahoo')) mappedSrc = 'Yahoo';
-            else if (srcLower.includes('udn') || srcLower.includes('經濟') || srcLower.includes('money.udn')) mappedSrc = 'UDN';
-            else if (srcLower.includes('moneydj')) mappedSrc = 'MoneyDJ';
-            else if (srcLower.includes('工商') || srcLower.includes('ctee')) mappedSrc = 'CTEE';
-            else if (srcLower.includes('天下')) mappedSrc = '天下';
-            else if (srcLower.includes('財訊')) mappedSrc = '財訊';
-            else if (srcLower.includes('cmoney')) mappedSrc = 'CMoney';
-            else if (srcLower.includes('東森')) mappedSrc = '東森';
-            else if (srcLower.includes('tvbs')) mappedSrc = 'TVBS';
-            else if (srcLower.includes('中央社') || srcLower.includes('cna')) mappedSrc = '中央社';
-            
-            if (mappedSrc) {
-                markSourceComplete(mappedSrc, true);
-            }
             addLog(`[${src}] 蒐集情報: ${data.content.title}`, 'scout');
         } else if (data.type === 'quant_data') {
             updateQuantUI(data);
@@ -1087,32 +1063,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // 渲染歷史智能
             if (data.intelligence) {
                 // 由後往前加，保持最新在上的視覺感
-                const sourceSet = new Set();
-                data.intelligence.forEach(item => {
-                    addNewsItem(item);
-                    if (item.source) sourceSet.add(item.source);
-                });
-                // 標記所有出現過的來源為已完成 - 使用模糊匹配
-                sourceSet.forEach(src => {
-                    const srcLower = src.toLowerCase();
-                    let mappedSrc = null;
-                    if (srcLower.includes('ptt')) mappedSrc = 'PTT';
-                    else if (srcLower.includes('鉅亨') || srcLower.includes('anue') || srcLower.includes('cnyes')) mappedSrc = 'Anue';
-                    else if (srcLower.includes('yahoo')) mappedSrc = 'Yahoo';
-                    else if (srcLower.includes('udn') || srcLower.includes('經濟') || srcLower.includes('money.udn')) mappedSrc = 'UDN';
-                    else if (srcLower.includes('moneydj')) mappedSrc = 'MoneyDJ';
-                    else if (srcLower.includes('工商') || srcLower.includes('ctee')) mappedSrc = 'CTEE';
-                    else if (srcLower.includes('天下')) mappedSrc = '天下';
-                    else if (srcLower.includes('財訊')) mappedSrc = '財訊';
-                    else if (srcLower.includes('cmoney')) mappedSrc = 'CMoney';
-                    else if (srcLower.includes('東森')) mappedSrc = '東森';
-                    else if (srcLower.includes('tvbs')) mappedSrc = 'TVBS';
-                    else if (srcLower.includes('中央社') || srcLower.includes('cna')) mappedSrc = '中央社';
-                    
-                    if (mappedSrc) {
-                        markSourceComplete(mappedSrc, true);
-                    }
-                });
+                data.intelligence.forEach(item => addNewsItem(item));
             }
             
             // 渲染歷史決策

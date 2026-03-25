@@ -255,8 +255,8 @@ header {
 main {
     flex: 1;
     display: grid;
-    /* 五欄最小 360px，確保內容不擁擠 */
-    grid-template-columns: repeat(5, minmax(360px, 1fr));
+    /* 五欄最小 350px，確保內容不擁擠 */
+    grid-template-columns: repeat(5, minmax(350px, 1fr));
     width: 100%; 
     gap: 16px;
     padding: 15px 20px;

@@ -6,7 +6,7 @@ import subprocess
 import argparse
 from datetime import datetime
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request, Body
-from fastapi.responses import RedirectResponse, Response
+from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from typing import List
@@ -58,11 +58,6 @@ async def legacy_redirect():
 @app.get("/sentinel-alpha")
 async def get_dashboard(request: Request):
     return templates.TemplateResponse("dashboard.html", {"request": request})
-
-@app.get("/templates/intelligence-panel.html")
-async def get_intelligence_panel(request: Request):
-    """Serve intelligence panel component"""
-    return templates.TemplateResponse("intelligence-panel.html", {"request": request})
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
