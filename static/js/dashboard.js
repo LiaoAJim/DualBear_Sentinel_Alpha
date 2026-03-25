@@ -120,7 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // 調試：檢查關鍵元素是否存在
-    const elements = ['btn-lexicon', 'btn-targets', 'btn-manual', 'btn-add-leverage2', 'custom-confirm-modal', 'lexicon-modal', 'targets-modal', 'manual-modal', 'leverage2-modal', 'toggle-sort', 'btn-order-left', 'btn-order-right'];
+    const elements = ['btn-lexicon', 'btn-targets', 'btn-add-leverage2', 'custom-confirm-modal', 'lexicon-modal', 'targets-modal', 'leverage2-modal', 'toggle-sort', 'btn-order-left', 'btn-order-right', 'manual-toggle', 'manual-collapse-content'];
     elements.forEach(id => {
         const el = document.getElementById(id);
         console.log(`[元素檢查] #${id}: ${el ? '✓ 存在' : '✗ 不存在'}`);
@@ -152,74 +152,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const CIRCUMFERENCE = 282.7;
     let allLogs = []; // 🆕 全量日誌儲存
     let sortDesc = true; // true = 新-舊 (新到上), false = 舊-新 (舊到上)
-    const reconSourceMap = {
-        ptt: ['ptt', 'ptt stock'],
-        anue: ['anue', '鉅亨', '鉅亨網', '鉅亨網 anue'],
-        yahoo: ['yahoo', 'yahoo 股市'],
-        udn: ['udn', '經濟日報', '經濟日報 udn'],
-        moneydj: ['moneydj'],
-        ctee: ['ctee', '工商'],
-        tianxia: ['天下', 'tianxia'],
-        caixin: ['財訊', 'caixin'],
-        cmoney: ['cmoney'],
-        ettoday: ['東森', 'ettoday'],
-        tvbs: ['tvbs'],
-        cna: ['中央社', 'cna']
-    };
-    const completedReconSources = new Set();
-
-    function normalizeSourceName(source) {
-        return (source || '').toString().trim().toLowerCase();
-    }
-
-    function findReconSourceKey(source) {
-        const normalized = normalizeSourceName(source);
-        if (!normalized) return null;
-
-        for (const [key, aliases] of Object.entries(reconSourceMap)) {
-            if (aliases.some(alias => normalized.includes(alias))) {
-                return key;
-            }
-        }
-        return null;
-    }
-
-    function updateReconCompleteCount() {
-        const reconCompleteCount = document.getElementById('recon-complete-count');
-        if (reconCompleteCount) {
-            reconCompleteCount.innerText = String(completedReconSources.size);
-        }
-    }
-
-    function markReconSourceComplete(source) {
-        const sourceKey = findReconSourceKey(source);
-        if (!sourceKey || completedReconSources.has(sourceKey)) return;
-
-        completedReconSources.add(sourceKey);
-        const sourceEl = document.getElementById(`src-${sourceKey}`);
-        if (sourceEl) {
-            const statusEl = sourceEl.querySelector('.status');
-            if (statusEl) statusEl.innerText = '✓';
-            sourceEl.classList.add('success');
-            sourceEl.style.color = 'var(--accent-blue)';
-        }
-        updateReconCompleteCount();
-    }
-
-    function resetReconSourceStatus() {
-        completedReconSources.clear();
-        updateReconCompleteCount();
-
-        Object.keys(reconSourceMap).forEach((sourceKey) => {
-            const sourceEl = document.getElementById(`src-${sourceKey}`);
-            if (!sourceEl) return;
-            const statusEl = sourceEl.querySelector('.status');
-            if (statusEl) statusEl.innerText = '○';
-            sourceEl.classList.remove('success');
-            sourceEl.style.color = '';
-        });
-    }
-
     // 渲染日誌列表
     function renderLogs() {
         systemLogs.innerHTML = '';
@@ -268,6 +200,28 @@ document.addEventListener('DOMContentLoaded', () => {
                 systemLogs.removeChild(systemLogs.firstChild);
             }
         }
+    }
+
+    function addStep1Log(message, type = 'info') {
+        if (typeof IntelligencePanel !== 'undefined' && IntelligencePanel.addLog) {
+            IntelligencePanel.addLog(message, type);
+        }
+    }
+
+    function addStep3Log(message, type = 'info') {
+        if (typeof DecisionPanel !== 'undefined' && DecisionPanel.addLog) {
+            DecisionPanel.addLog(message, type);
+        }
+    }
+
+    function classifyLogTarget(message = '') {
+        if (/Step 3|量化|融資|散戶|台灣VIX|美國VIX|哨兵|決策|VIX/.test(message)) {
+            return 'step3';
+        }
+        if (/Step 1|廣域採集|情報來源|蒐集情報|來源抓取|偵察/.test(message)) {
+            return 'step1';
+        }
+        return 'step2';
     }
 
     function updateStepper(stepId) {
@@ -360,10 +314,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- 資產配置與手冊邏輯 ---
     let currentTargetPositionPercent = null; // 尚未執行偵察前，不顯示預設建議
     
-    const btnManual = document.getElementById('btn-manual');
-    const manualModal = document.getElementById('manual-modal');
-    const closeManual = document.getElementById('close-manual');
-    
     const inputSpareCash = document.getElementById('input-spare-cash');
     const inputCurrentStock = document.getElementById('input-current-stock');
     const inputLongTerm = document.getElementById('input-longterm-percent'); // 🆕 長期持有佔比
@@ -375,8 +325,35 @@ document.addEventListener('DOMContentLoaded', () => {
     const suggestActionEl = document.getElementById('calc-suggest-action');
     const providerSelect = document.getElementById('provider-select'); // 🆕 AI 引擎選擇
     const AUTO_START_RECON_KEY = 'dualbear_auto_start_recon';
+    let currentTargetPositionState = 'idle';
+
+    function syncTargetPositionFromText(targetPositionText) {
+        if (targetPositionText === '失敗') {
+            currentTargetPositionState = 'failed';
+            currentTargetPositionPercent = null;
+            updateAssetCalculations();
+            return;
+        }
+
+        currentTargetPositionState = 'ready';
+        const match = (targetPositionText || '').match(/(\d+)%/);
+        currentTargetPositionPercent = match ? parseInt(match[1], 10) / 100 : null;
+        if (!match) currentTargetPositionState = 'idle';
+        updateAssetCalculations();
+    }
+
+    function setupDecisionPanelIntegration() {
+        if (typeof DecisionPanel === 'undefined') return;
+
+        DecisionPanel.init();
+        DecisionPanel.onPositionChange((positionPercent) => {
+            currentTargetPositionPercent = positionPercent;
+            updateAssetCalculations();
+        });
+    }
 
     function resetRecommendationDisplay() {
+        currentTargetPositionState = 'idle';
         if (targetStockValueEl) targetStockValueEl.innerText = '--';
         if (suggestCashValueEl) suggestCashValueEl.innerText = '--';
         if (suggestActionEl) {
@@ -385,9 +362,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function setRecommendationFailureDisplay() {
+        if (targetStockValueEl) targetStockValueEl.innerText = '失敗';
+        if (suggestCashValueEl) suggestCashValueEl.innerText = '失敗';
+        if (suggestActionEl) {
+            suggestActionEl.innerText = '失敗';
+            suggestActionEl.style.color = 'var(--danger)';
+        }
+    }
+
     function initializeLiveDataDefaults() {
         if (newsCount) newsCount.innerText = '- 則偵察';
-        resetReconSourceStatus();
+        if (typeof IntelligencePanel !== 'undefined') {
+            IntelligencePanel.resetSourceStatus();
+            IntelligencePanel.resetLogs?.();
+        }
 
         if (typeof SentimentGauge !== 'undefined') {
             SentimentGauge.reset();
@@ -406,15 +395,20 @@ document.addEventListener('DOMContentLoaded', () => {
             if (statFailure) statFailure.innerText = '-';
         }
 
-        if (decisionAction) decisionAction.innerText = '--';
-        if (targetPosition) targetPosition.innerText = '--';
-        if (decisionNotes) decisionNotes.innerText = '系統持續監控市場脈動中...';
+        if (typeof DecisionPanel !== 'undefined') {
+            DecisionPanel.resetToDefaults();
+        } else {
+            if (decisionAction) decisionAction.innerText = '--';
+            if (targetPosition) targetPosition.innerText = '--';
+            if (decisionNotes) decisionNotes.innerText = '系統持續監控市場脈動中...';
 
-        updateQuantUI({
-            margin_maintenance_ratio: null,
-            retail_long_short_ratio: null,
-            vixtwn: null
-        });
+            updateQuantUI({
+                margin_maintenance_ratio: null,
+                retail_long_short_ratio: null,
+                vixtwn: null,
+                vixus: null
+            });
+        }
 
         resetRecommendationDisplay();
     }
@@ -541,9 +535,22 @@ document.addEventListener('DOMContentLoaded', () => {
         initLeverage2();
     }
 
-    // 💡 手冊彈窗
-    if (btnManual) btnManual.onclick = () => manualModal.classList.add('show');
-    if (closeManual) closeManual.onclick = () => manualModal.classList.remove('show');
+    // 💡 Step 3 手冊收合
+    const manualToggle = document.getElementById('manual-toggle');
+    const manualCollapseContent = document.getElementById('manual-collapse-content');
+    const manualToggleIcon = document.getElementById('manual-toggle-icon');
+
+    if (manualToggle && manualCollapseContent) {
+        manualToggle.onclick = () => {
+            const isOpen = manualCollapseContent.style.display !== 'none';
+            manualCollapseContent.style.display = isOpen ? 'none' : 'block';
+            if (manualToggleIcon) {
+                manualToggleIcon.innerHTML = isOpen
+                    ? '<i class="fas fa-chevron-down"></i>'
+                    : '<i class="fas fa-chevron-up"></i>';
+            }
+        };
+    }
     
     // 💡 核心演算法：(總資產 * 長期比例) + (剩餘可用 * 哨兵建議%)
     window.updateAssetCalculations = function() {
@@ -598,6 +605,12 @@ document.addEventListener('DOMContentLoaded', () => {
             labelCurrentBeta.style.color = currentBeta > 1.1 ? 'var(--accent-pink)' : (currentBeta > 1 ? '#f59e0b' : '#fff');
         }
 
+        if (currentTargetPositionState === 'failed') {
+            setRecommendationFailureDisplay();
+            saveSettings();
+            return;
+        }
+
         if (currentTargetPositionPercent === null || Number.isNaN(currentTargetPositionPercent)) {
             resetRecommendationDisplay();
             saveSettings(); // 同步儲存
@@ -624,6 +637,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    setupDecisionPanelIntegration();
     initializeLiveDataDefaults();
 
     // 初始化讀取
@@ -645,37 +659,41 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function handleUpdate(data) {
         if (data.type === 'log') {
-            addLog(data.content, data.level || 'info');
+            const target = classifyLogTarget(data.content || '');
+            if (target === 'step1') {
+                addStep1Log(data.content, data.level || 'info');
+            } else if (target === 'step3') {
+                addStep3Log(data.content, data.level || 'info');
+            } else {
+                addLog(data.content, data.level || 'info');
+            }
         } else if (data.type === 'status') {
             updateStepper(data.step);
         } else if (data.type === 'intelligence') {
             addNewsItem(data.content);
             const src = data.content.source || '未知';
-            markReconSourceComplete(src);
-            addLog(`[${src}] 蒐集情報: ${data.content.title}`, 'scout');
+            if (typeof IntelligencePanel !== 'undefined') {
+                IntelligencePanel.markSourceComplete(src);
+            }
+            addStep1Log(`[${src}] 蒐集情報: ${data.content.title}`, 'scout');
+        } else if (data.type === 'source_status') {
+            if (data.status === 'failed') {
+                if (typeof IntelligencePanel !== 'undefined') {
+                    IntelligencePanel.markSourceFailed(data.source);
+                }
+                addStep1Log(`❌ 來源抓取失敗: ${data.source}`, 'error');
+            } else if (data.status === 'success') {
+                if (typeof IntelligencePanel !== 'undefined') {
+                    IntelligencePanel.markSourceComplete(data.source);
+                }
+                addStep1Log(`✅ 來源抓取完成: ${data.source}`, 'success');
+            }
         } else if (data.type === 'quant_data') {
             updateQuantUI(data);
-            addLog('籌碼面偵察完成，量化指標已同步。', 'scout');
+            addStep3Log('籌碼面偵察完成，量化指標已同步。', 'scout');
         } else if (data.type === 'vix_data') {
-            // VIX 恐慌指數顯示
-            const vixEl = document.getElementById('quant-vix');
-            if (vixEl && data.value) {
-                vixEl.textContent = data.value;
-                const vVal = parseFloat(data.value);
-                // 根據 VIX 數值變色
-                if (vVal >= 30) {
-                    vixEl.style.color = 'var(--accent-pink)';  // 恐慌
-                } else if (vVal >= 25) {
-                    vixEl.style.color = '#f59e0b';  // 緊張
-                } else if (vVal < 15) {
-                    vixEl.style.color = '#10b981';  // 極度樂觀
-                } else {
-                    vixEl.style.color = 'var(--accent-blue)';  // 正常
-                }
-            }
-            // 同時更新情緒面板的 VIX 提示
             if (data.interpretation) {
-                addLog(`📊 VIX: ${data.value} (${data.interpretation})`, 'scout');
+                addStep3Log(`📊 VIX: ${data.value} (${data.interpretation})`, 'scout');
             }
         } else if (data.type === 'analysis_start') {
             // 使用 AIThoughtBubble 模組
@@ -701,27 +719,33 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } else if (data.type === 'analysis_result') {
             updateGauge(data.final_score);
-            addLog(`最終情緒分數判定: ${data.final_score.toFixed(2)}`, 'success');
-        } else if (data.type === 'decision') {
-            decisionAction.innerText = data.action;
-            targetPosition.innerText = data.target_position;
-            decisionNotes.innerText = data.recon_notes;
-            
-            // 處理「分析失敗」樣式
-            if (data.action === "分析失敗") {
-                decisionAction.style.color = "var(--danger)";
-                targetPosition.style.color = "var(--text-dim)";
+            if (typeof DecisionPanel !== 'undefined') {
+                DecisionPanel.handleAnalysisResult(data.final_score);
+            }
+            if (data.final_score === null || data.final_score === undefined) {
+                addLog('最終情緒分數判定失敗。', 'error');
             } else {
-                decisionAction.style.color = ""; // 恢復 CSS 定義
-                targetPosition.style.color = "";
+                addLog(`最終情緒分數判定: ${data.final_score.toFixed(2)}`, 'success');
+            }
+        } else if (data.type === 'decision') {
+            if (typeof DecisionPanel !== 'undefined') {
+                DecisionPanel.handleDecisionMessage(data);
+                addStep3Log(`決策生成完成: ${data.action} / ${data.target_position}`, 'success');
+            } else {
+                decisionAction.innerText = data.action;
+                targetPosition.innerText = data.target_position;
+                decisionNotes.innerText = data.recon_notes;
+                
+                if (data.action === "分析失敗") {
+                    decisionAction.style.color = "var(--danger)";
+                    targetPosition.style.color = "var(--text-dim)";
+                } else {
+                    decisionAction.style.color = "";
+                    targetPosition.style.color = "";
+                }
             }
 
-            // 更新資產配置比例
-            const match = data.target_position.match(/(\d+)%/);
-            if (match) {
-                currentTargetPositionPercent = parseInt(match[1]) / 100;
-                updateAssetCalculations();
-            }
+            syncTargetPositionFromText(data.target_position);
 
             // 處理可能存在的調整資訊
             if (data.quant_adjustment) {
@@ -1060,6 +1084,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const rawDate = typeof item === 'string' ? item : item.date;
                     const stats = typeof item === 'object' ? (item.analysis_stats || {}) : {};
                     const sentiment = typeof item === 'object' ? item.sentiment_score : null;
+                    const step3 = typeof item === 'object' ? (item.step3 || {}) : {};
                     
                     // 解析 2026-03-19_143005 -> 2026-03-19 14:30:05
                     const parts = rawDate.split('_');
@@ -1082,6 +1107,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     const success = stats.success || 0;
                     const failure = stats.failure || 0;
                     const successRate = total > 0 ? Math.round((success / total) * 100) : 0;
+                    const actionText = step3.action || '沒資料';
+                    const targetPositionText = step3.target_position || '沒資料';
+                    const twVixText = step3.vixtwn ?? '沒資料';
+                    const usVixText = step3.vixus ?? '沒資料';
+                    const marginText = step3.margin_maintenance_ratio ?? '沒資料';
+                    const retailText = step3.retail_long_short_ratio ?? '沒資料';
 
                     const historyItem = document.createElement('div');
                     historyItem.className = 'history-item';
@@ -1094,6 +1125,16 @@ document.addEventListener('DOMContentLoaded', () => {
                             <span class="date-text" style="font-weight: 700; color: #fff;">${datePart}</span>
                             <span class="time-text" style="font-size: 11px; color: var(--accent-blue); display: block; margin-top: 2px;">${timePart}</span>
                             <span style="font-size: 10px; color: ${scoreColor};">情緒 ${scoreText}</span>
+                            <div style="margin-top: 8px; display: flex; flex-direction: column; gap: 4px;">
+                                <div style="font-size: 10px; color: #f3d9ff; line-height: 1.5;">
+                                    <span style="color: var(--text-dim);">Step 3</span>
+                                    <span style="margin-left: 6px; color: #fff; font-weight: 700;">${actionText}</span>
+                                    <span style="margin-left: 6px; color: var(--accent-blue); font-weight: 700;">${targetPositionText}</span>
+                                </div>
+                                <div style="font-size: 9px; color: var(--text-dim); line-height: 1.6;">
+                                    融維 ${marginText} ・ 散戶 ${retailText} ・ 台VIX ${twVixText} ・ 美VIX ${usVixText}
+                                </div>
+                            </div>
                         </div>
                         <div class="history-stats" style="text-align: center; padding: 0 10px; min-width: 70px;">
                             <span style="font-size: 9px; color: var(--text-dim);">可信度</span><br>
@@ -1171,7 +1212,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     <p>等待偵察數據導入...</p>
                 </div>
             `;
-            updateGauge(0);
+            updateGauge(null);
+            if (typeof DecisionPanel !== 'undefined') {
+                DecisionPanel.resetToDefaults();
+                DecisionPanel.handleAnalysisResult(null);
+            }
+            if (typeof IntelligencePanel !== 'undefined' && IntelligencePanel.resetLogs) {
+                IntelligencePanel.resetLogs();
+            }
             
             // 顯示報告時間戳
             const reportTimestamp = document.getElementById('report-timestamp');
@@ -1192,26 +1240,48 @@ document.addEventListener('DOMContentLoaded', () => {
                 // 由後往前加，保持最新在上的視覺感
                 data.intelligence.forEach(item => {
                     addNewsItem(item);
-                    markReconSourceComplete(item.source);
+                    if (typeof IntelligencePanel !== 'undefined') {
+                        IntelligencePanel.markSourceComplete(item.source);
+                        IntelligencePanel.addLog(`[${item.source || '未知'}] 歷史偵察載入: ${item.title || '無標題'}`, 'scout');
+                    }
                 });
             }
             
             // 渲染歷史決策
             if (data.decision) {
-                updateGauge(data.decision.sentiment_score || 0);
+                updateGauge(data.decision.sentiment_score ?? null);
                 // 更新決策面板
-                decisionAction.innerText = data.decision.action;
-                targetPosition.innerText = data.decision.target_position;
-                decisionNotes.innerText = data.decision.recon_notes;
-                const historyPositionMatch = (data.decision.target_position || '').match(/(\d+)%/);
-                currentTargetPositionPercent = historyPositionMatch ? parseInt(historyPositionMatch[1], 10) / 100 : null;
-                updateAssetCalculations();
+                if (typeof DecisionPanel !== 'undefined') {
+                    DecisionPanel.setHistoricalSnapshot(data);
+                } else {
+                    decisionAction.innerText = data.decision.action;
+                    targetPosition.innerText = data.decision.target_position;
+                    decisionNotes.innerText = data.decision.recon_notes;
+                }
+                syncTargetPositionFromText(data.decision.target_position);
                 // 使用 AIThoughtBubble 模組
                 if (typeof AIThoughtBubble !== 'undefined') {
                     AIThoughtBubble.setMessage(`讀取歷史檔案 [${date}] 完成。`);
                 } else {
                     aiThought.innerText = `讀取歷史檔案 [${date}] 完成。`;
                 }
+            } else if (typeof DecisionPanel !== 'undefined') {
+                DecisionPanel.setHistoricalSnapshot(data);
+            }
+
+            if (data.decision_variants) {
+                ['conservative', 'balanced', 'contrarian'].forEach((profile) => {
+                    const variant = data.decision_variants[profile];
+                    if (!variant) return;
+                    addLog(
+                        `🧾 歷史版本 ${variant.strategy_label || profile}: ${variant.action || '--'} / ${variant.target_position || '--'}`,
+                        'system'
+                    );
+                    addStep3Log(
+                        `🧾 歷史版本 ${variant.strategy_label || profile}: ${variant.action || '--'} / ${variant.target_position || '--'}`,
+                        'system'
+                    );
+                });
             }
             
             // 更新分析統計（如果歷史檔案有這個資料）
@@ -1227,11 +1297,43 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 addLog(`📊 歷史統計: 總計 ${stats.total || 0} / 成功 ${stats.success || 0} / 失敗 ${stats.failure || 0}`, 'scout');
             }
+
+            if (Array.isArray(data.analysis_details) && data.analysis_details.length > 0) {
+                data.analysis_details.forEach((item, index) => {
+                    if (item.status === 'success') {
+                        addLog(
+                            `🧠 歷史分析 [${index + 1}] [${item.source || '未知'}] ${item.provider || 'AI'}: ${item.score} (${item.flavor || '中性'})`,
+                            'ai'
+                        );
+                    } else {
+                        addLog(
+                            `🧠 歷史分析 [${index + 1}] [${item.source || '未知'}] ${item.provider || 'AI'} 失敗: ${item.error_type || 'UNKNOWN'}`,
+                            'warning'
+                        );
+                    }
+                });
+
+                const lastDetail = data.analysis_details[data.analysis_details.length - 1];
+                const thoughtText = lastDetail.status === 'success'
+                    ? `歷史分析完成：最後一筆由 ${lastDetail.provider || 'AI'} 判定為 ${lastDetail.flavor || '中性'}。`
+                    : `歷史分析載入完成：共 ${data.analysis_details.length} 筆，含失敗紀錄。`;
+                if (typeof AIThoughtBubble !== 'undefined') {
+                    AIThoughtBubble.setMessage(thoughtText);
+                } else {
+                    aiThought.innerText = thoughtText;
+                }
+            } else {
+                if (typeof AIThoughtBubble !== 'undefined') {
+                    AIThoughtBubble.setMessage('此歷史檔沒有逐筆 AI 分析紀錄。');
+                } else {
+                    aiThought.innerText = '此歷史檔沒有逐筆 AI 分析紀錄。';
+                }
+            }
             
             // 恢復量化數據（融資、散戶、VIX）
             if (data.quant_data) {
                 updateQuantUI(data.quant_data);
-                addLog(`📈 歷史量化數據: 融資 ${data.quant_data.margin_maintenance_ratio || '--'}%, 散戶 ${data.quant_data.retail_long_short_ratio || '--'}, VIX ${data.quant_data.vixtwn || '--'}`, 'scout');
+                addStep3Log(`📈 歷史量化數據: 融維 ${data.quant_data.margin_maintenance_ratio || '--'}%, 散戶 ${data.quant_data.retail_long_short_ratio || '--'}, 台VIX ${data.quant_data.vixtwn || '--'}, 美VIX ${data.quant_data.vixus || '--'}`, 'scout');
             }
             
             addLog(`✅ 成功載入 ${date} 的歷史盤型。`, "success");
@@ -1310,36 +1412,70 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateQuantUI(data) {
         if (!data) return;
+
+        if (typeof DecisionPanel !== 'undefined') {
+            DecisionPanel.updateQuant(data);
+            return;
+        }
         
         const marginEl = document.getElementById('quant-margin');
         const retailEl = document.getElementById('quant-retail');
-        const vixEl = document.getElementById('quant-vix');
+        const vixTwEl = document.getElementById('quant-vix-tw');
+        const vixUsEl = document.getElementById('quant-vix-us');
 
         if (marginEl) {
-            const margin = data.margin_maintenance_ratio || '--';
-            marginEl.textContent = margin + ' %';
-            // 變色邏輯
-            const mVal = parseFloat(margin);
-            if (mVal < 140) marginEl.style.color = 'var(--accent-pink)';
-            else if (mVal > 165) marginEl.style.color = 'var(--accent-purple)';
-            else marginEl.style.color = 'var(--accent-blue)';
+            const margin = data.margin_maintenance_ratio;
+            if (margin === '失敗') {
+                marginEl.textContent = '失敗';
+                marginEl.style.color = 'var(--danger)';
+            } else if (margin !== null && margin !== undefined && margin !== '') {
+                marginEl.textContent = margin + ' %';
+                const mVal = parseFloat(margin);
+                if (mVal < 140) marginEl.style.color = 'var(--accent-pink)';
+                else if (mVal > 165) marginEl.style.color = 'var(--accent-purple)';
+                else marginEl.style.color = 'var(--accent-blue)';
+            } else {
+                marginEl.textContent = '--';
+                marginEl.style.color = '';
+            }
         }
 
         if (retailEl) {
-            const retail = data.retail_long_short_ratio || '--';
-            retailEl.textContent = retail;
-            const rVal = parseFloat(retail);
-            if (Math.abs(rVal) > 30) retailEl.style.color = 'var(--accent-pink)';
-            else retailEl.style.color = 'var(--accent-blue)';
+            const retail = data.retail_long_short_ratio;
+            if (retail === '失敗') {
+                retailEl.textContent = '失敗';
+                retailEl.style.color = 'var(--danger)';
+            } else if (retail !== null && retail !== undefined && retail !== '') {
+                retailEl.textContent = retail;
+                const rVal = parseFloat(retail);
+                if (Math.abs(rVal) > 30) retailEl.style.color = 'var(--accent-pink)';
+                else retailEl.style.color = 'var(--accent-blue)';
+            } else {
+                retailEl.textContent = '--';
+                retailEl.style.color = '';
+            }
         }
 
-        if (vixEl) {
-            const vix = data.vixtwn || '--';
-            vixEl.textContent = vix;
-            const vVal = parseFloat(vix);
-            if (vVal > 25) vixEl.style.color = 'var(--accent-pink)';
-            else vixEl.style.color = 'var(--accent-blue)';
-        }
+        const renderVix = (el, value) => {
+            if (!el) return;
+            if (value === '失敗') {
+                el.textContent = '失敗';
+                el.style.color = 'var(--danger)';
+            } else if (value !== null && value !== undefined && value !== '') {
+                el.textContent = value;
+                const vVal = parseFloat(value);
+                if (vVal >= 30) el.style.color = 'var(--accent-pink)';
+                else if (vVal >= 25) el.style.color = '#f59e0b';
+                else if (vVal < 15) el.style.color = '#10b981';
+                else el.style.color = 'var(--accent-blue)';
+            } else {
+                el.textContent = '--';
+                el.style.color = '';
+            }
+        };
+
+        renderVix(vixTwEl, data.vixtwn);
+        renderVix(vixUsEl, data.vixus);
     }
 
     // ℹ️ openCustomConfirm 已移至 DOMContentLoaded 外部（見檔案最下方）

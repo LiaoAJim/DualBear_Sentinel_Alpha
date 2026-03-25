@@ -4,6 +4,11 @@ from datetime import datetime
 import re
 from core.vix_scout import VIXScout
 
+try:
+    from playwright.sync_api import sync_playwright
+except Exception:
+    sync_playwright = None
+
 class QuantSentimentScout:
     """
     🛡️ 籌碼情報員 (QuantSentimentScout) - 官網真理對接版
@@ -16,14 +21,34 @@ class QuantSentimentScout:
         }
         self.last_errors = {}
         self.last_attempts = {}
+        self.last_margin_market = {}
+        self.margin_xpaths = {
+            "pscnet": {
+                "listed": "/html/body/div[1]/div/div[1]/div[2]/div[2]/div/div[3]/div/div/div/div/div[2]/div/div/div[2]/div[2]/table/tbody/tr[2]/td[6]",
+                "otc": "/html/body/div[1]/div/div[1]/div[2]/div[2]/div/div[3]/div/div/div/div/div[2]/div/div/div[2]/div[2]/table/tbody/tr[2]/td[6]",
+            },
+            "kgi": {
+                "listed": "/html/body/div[1]/div/div[1]/div[2]/div[2]/div/div[3]/div/div/div/div/div[2]/div/div/div[2]/div[2]/table/tbody/tr[2]/td[6]",
+                "otc": "/html/body/div[1]/div/div[1]/div[2]/div[2]/div/div[3]/div/div/div/div/div[2]/div/div/div[2]/div[2]/table/tbody/tr[2]/td[6]",
+            }
+        }
 
     def fetch_all_indicators(self):
         print("[START] 籌碼情報員：啟動「官網真理」採集程序...")
         self.last_errors = {}
         self.last_attempts = {}
+        self.last_margin_market = {}
         indicators = {
             'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M"),
             'margin_maintenance_ratio': None,
+            'margin_maintenance_ratio_market': {
+                'listed': None,
+                'otc': None,
+                'market': None,
+                'source': None,
+                'method': 'unavailable',
+                'note': '尚未取得上市 / 上櫃明細，無法判定大盤融資維持率組成。'
+            },
             'retail_long_short_ratio': None,
             'vixtwn': None,
             'vixus': None,
@@ -60,10 +85,13 @@ class QuantSentimentScout:
                 # 券商頁目前僅保留作為研究中的靜態備援探測，
                 # 詳見 docs/quant_backup_sources.md。
                 ('pscnet_credit_page', self._get_psc_margin_snapshot),
+                ('pscnet_credit_playwright', self._get_psc_margin_playwright),
+                ('kgi_market_playwright', self._get_kgi_margin_playwright),
                 ('kgi_market_overview_page', self._get_kgi_margin_snapshot),
             ]
         )
         indicators['_status']['margin_maintenance_ratio'] = 'success' if indicators['margin_maintenance_ratio'] is not None else 'failed'
+        indicators['margin_maintenance_ratio_market'] = self._build_margin_market_breakdown(indicators)
 
         indicators['retail_long_short_ratio'], indicators['_sources']['retail_long_short_ratio'] = self._fetch_with_fallback(
             'retail_long_short_ratio',
@@ -187,6 +215,7 @@ class QuantSentimentScout:
                     if sibling:
                         val = self._extract_first_float(sibling.get_text(" ", strip=True))
                         if val is not None:
+                            self._record_margin_market_values('wantgoo_margin_page', aggregate=val)
                             print(f"   ∟ [WantGoo] 融資維持率: {val}%")
                             return val
 
@@ -194,6 +223,7 @@ class QuantSentimentScout:
             text = soup.get_text(" ", strip=True)
             val = self._extract_context_float(text, r'融資維持率', suffix='%')
             if val is not None:
+                self._record_margin_market_values('wantgoo_margin_page', aggregate=val)
                 print(f"   ∟ [WantGoo] 融資維持率(備援): {val}%")
                 return val
             self.last_errors['margin_maintenance_ratio'] = '頁面可載入，但解析不到融資維持率'
@@ -248,6 +278,59 @@ class QuantSentimentScout:
             api_hint='/pscnetStock/getSearchByKeyword.do 僅為搜尋建議，未見融資維持率 API'
         )
 
+    def _get_psc_margin_playwright(self):
+        """統一證券信用交易頁 Playwright 備援，處理 JS 動態渲染的表格"""
+        url = "https://www.pscnet.com.tw/pscnetStock/menuContent.do?main_id=386032846c000000ccd145898ac293b6&sub_id=38d642081a00000099f12672f4cf7d6e"
+        if sync_playwright is None:
+            self.last_errors['margin_maintenance_ratio'] = 'Playwright 未安裝，無法啟用瀏覽器備援'
+            return None
+
+        try:
+            with sync_playwright() as p:
+                browser = p.chromium.launch(headless=True)
+                page = browser.new_page()
+                page.goto(url, wait_until='networkidle', timeout=30000)
+
+                market_values = self._extract_margin_market_with_xpaths(page, self.margin_xpaths["pscnet"])
+                if market_values:
+                    self._record_margin_market_values('pscnet_credit_playwright', market_values=market_values)
+                value = self._choose_margin_market_value(market_values)
+                if self._looks_like_margin_ratio(value):
+                    browser.close()
+                    print(f"   ∟ [PSC Playwright] 融資維持率: {value}%")
+                    return value
+
+                # 備援 0: 掃描可疑表格儲存格
+                candidate_texts = page.locator("td.text-right.undefined, td[class*='text-right']").all_inner_texts()
+                for text in candidate_texts:
+                    value = self._extract_first_float(text)
+                    if self._looks_like_margin_ratio(value):
+                        browser.close()
+                        print(f"   ∟ [PSC Playwright] 融資維持率(表格欄位): {value}%")
+                        return value
+
+                # 備援 1: 從渲染後的 HTML 找標籤附近數字
+                content = page.content()
+                soup = BeautifulSoup(content, 'html.parser')
+                value = self._extract_margin_from_html(soup)
+                if self._looks_like_margin_ratio(value):
+                    browser.close()
+                    print(f"   ∟ [PSC Playwright] 融資維持率(標籤): {value}%")
+                    return value
+
+                # 備援 2: 從整頁文字中找合理範圍的浮點數
+                page_text = page.locator('body').inner_text()
+                value = self._extract_margin_from_text(page_text)
+                browser.close()
+                if self._looks_like_margin_ratio(value):
+                    print(f"   ∟ [PSC Playwright] 融資維持率(全文): {value}%")
+                    return value
+
+                self.last_errors['margin_maintenance_ratio'] = '統一證券頁已渲染，但仍解析不到融資維持率'
+        except Exception as e:
+            self.last_errors['margin_maintenance_ratio'] = f"統一證券 Playwright 備援失敗: {str(e)}"
+        return None
+
     def _get_kgi_margin_snapshot(self):
         """凱基市場頁備援探測，目前僅做靜態頁與關鍵字探測"""
         url = "https://www.kgi.com.tw/zh-tw/product-market/stock-market-overview/tw-stock-market/tw-stock-market-detail?a=B658010E71E243C4A1D6B5F7BE914BDC&b=5D48401A7CE148CD8ABAC965F9B5AFBF"
@@ -257,6 +340,53 @@ class QuantSentimentScout:
             source_label='凱基頁面',
             api_hint='/api/client/KGISDropdownList/GetDropdownList 與頁面下拉選單相關，未見融資維持率 API'
         )
+
+    def _get_kgi_margin_playwright(self):
+        """凱基大盤動態頁 Playwright 備援，使用已知 XPath 抓融資相關欄位"""
+        url = "https://www.kgi.com.tw/zh-tw/product-market/stock-market-overview/tw-stock-market/tw-stock-market-detail?a=B658010E71E243C4A1D6B5F7BE914BDC&b=5D48401A7CE148CD8ABAC965F9B5AFBF"
+
+        if sync_playwright is None:
+            self.last_errors['margin_maintenance_ratio'] = 'Playwright 未安裝，無法啟用凱基瀏覽器備援'
+            return None
+
+        try:
+            with sync_playwright() as p:
+                browser = p.chromium.launch(headless=True)
+                page = browser.new_page()
+                page.goto(url, wait_until='networkidle', timeout=30000)
+
+                market_values = self._extract_margin_market_with_xpaths(page, self.margin_xpaths["kgi"])
+                if market_values:
+                    self._record_margin_market_values('kgi_market_playwright', market_values=market_values)
+                value = self._choose_margin_market_value(market_values)
+                if self._looks_like_margin_ratio(value):
+                    browser.close()
+                    print(f"   ∟ [KGI Playwright] 融資維持率: {value}%")
+                    return value
+
+                # 備援 1: 搜尋表格內合理範圍的欄位
+                candidate_texts = page.locator("table td, table th").all_inner_texts()
+                for text in candidate_texts:
+                    value = self._extract_first_float(text)
+                    if self._looks_like_margin_ratio(value):
+                        browser.close()
+                        print(f"   ∟ [KGI Playwright] 融資維持率(表格): {value}%")
+                        return value
+
+                # 備援 2: 從渲染後 HTML 搜尋標籤附近數字
+                content = page.content()
+                soup = BeautifulSoup(content, 'html.parser')
+                value = self._extract_margin_from_html(soup)
+                if self._looks_like_margin_ratio(value):
+                    browser.close()
+                    print(f"   ∟ [KGI Playwright] 融資維持率(標籤): {value}%")
+                    return value
+
+                browser.close()
+                self.last_errors['margin_maintenance_ratio'] = '凱基頁已渲染，但仍解析不到融資維持率'
+        except Exception as e:
+            self.last_errors['margin_maintenance_ratio'] = f"凱基 Playwright 備援失敗: {str(e)}"
+        return None
 
     def _probe_margin_snapshot_page(self, url, error_key, source_label, api_hint):
         try:
@@ -269,6 +399,7 @@ class QuantSentimentScout:
             text = soup.get_text(" ", strip=True)
             value = self._extract_context_float(text, r'融資維持率', suffix='%')
             if value is not None:
+                self._record_margin_market_values(source_label, aggregate=value)
                 print(f"   ∟ [{source_label}] 融資維持率: {value}%")
                 return value
 
@@ -352,6 +483,138 @@ class QuantSentimentScout:
             except Exception:
                 continue
         return payload.decode('utf-8', errors='replace')
+
+    def _looks_like_margin_ratio(self, value):
+        return value is not None and 100 <= value <= 250
+
+    def _extract_margin_from_html(self, soup):
+        label = soup.find(string=re.compile(r'融資維持率'))
+        if label:
+            parent = getattr(label, 'parent', None)
+            if parent:
+                sibling = parent.find_next_sibling()
+                if sibling:
+                    return self._extract_first_float(sibling.get_text(" ", strip=True))
+                row = parent.find_parent('tr')
+                if row:
+                    cells = row.find_all(['td', 'th'])
+                    for cell in cells:
+                        value = self._extract_first_float(cell.get_text(" ", strip=True))
+                        if self._looks_like_margin_ratio(value):
+                            return value
+        return None
+
+    def _extract_margin_from_text(self, text):
+        direct = self._extract_context_float(text, r'融資維持率', suffix='%')
+        if self._looks_like_margin_ratio(direct):
+            return direct
+
+        candidates = [float(match) for match in re.findall(r'\d+(?:\.\d+)?', text.replace(',', ''))]
+        for value in candidates:
+            if self._looks_like_margin_ratio(value):
+                return value
+        return None
+
+    def _extract_margin_market_with_xpaths(self, page, xpath_map):
+        market_values = {}
+        for market_name, xpath in xpath_map.items():
+            try:
+                locator = page.locator(f"xpath={xpath}")
+                if locator.count() == 0:
+                    continue
+                raw_text = locator.first.inner_text().strip()
+                value = self._extract_first_float(raw_text)
+                if self._looks_like_margin_ratio(value):
+                    print(f"   ∟ [XPath:{market_name}] 命中 {raw_text}")
+                    market_values[market_name] = value
+            except Exception:
+                continue
+        return market_values
+
+    def _choose_margin_market_value(self, market_values):
+        if not market_values:
+            return None
+        # 目前尚未取得上市 / 上櫃融資餘額，因此先不做加權平均。
+        # 若兩邊都有值且相同，直接採用；若不同，先取 listed 為主並保留細項。
+        if market_values.get('listed') is not None:
+            return market_values['listed']
+        if market_values.get('otc') is not None:
+            return market_values['otc']
+        return None
+
+    def _record_margin_market_values(self, source_name, market_values=None, aggregate=None):
+        market_values = market_values or {}
+        if market_values:
+            self.last_margin_market['listed'] = market_values.get('listed')
+            self.last_margin_market['otc'] = market_values.get('otc')
+        if aggregate is not None:
+            self.last_margin_market['aggregate'] = aggregate
+        self.last_margin_market['source'] = source_name
+
+    def _build_margin_market_breakdown(self, indicators):
+        current = indicators.get('margin_maintenance_ratio')
+        listed = self.last_margin_market.get('listed')
+        otc = self.last_margin_market.get('otc')
+        aggregate = self.last_margin_market.get('aggregate')
+        source = self.last_margin_market.get('source')
+
+        if aggregate is not None:
+            return {
+                'listed': listed,
+                'otc': otc,
+                'market': aggregate,
+                'source': source,
+                'method': 'source_aggregate',
+                'note': '來源直接提供單一大盤融資維持率，未拆上市 / 上櫃權重。'
+            }
+
+        if listed is not None and otc is not None:
+            if listed == otc:
+                return {
+                    'listed': listed,
+                    'otc': otc,
+                    'market': listed,
+                    'source': source,
+                    'method': 'markets_equal',
+                    'note': '上市與上櫃數值相同，直接採用該值。'
+                }
+            return {
+                'listed': listed,
+                'otc': otc,
+                'market': current,
+                'source': source,
+                'method': 'proxy_listed_priority',
+                'note': '尚未取得上市 / 上櫃融資餘額，暫以上市值作為主顯示，不視為加權大盤值。'
+            }
+
+        if listed is not None:
+            return {
+                'listed': listed,
+                'otc': otc,
+                'market': listed,
+                'source': source,
+                'method': 'listed_only',
+                'note': '僅取得上市融資維持率，無法計算加權大盤值。'
+            }
+
+        if otc is not None:
+            return {
+                'listed': listed,
+                'otc': otc,
+                'market': otc,
+                'source': source,
+                'method': 'otc_only',
+                'note': '僅取得上櫃融資維持率，無法計算加權大盤值。'
+            }
+
+        return {
+            'listed': None,
+            'otc': None,
+            'market': current,
+            'source': source,
+            'method': 'main_only',
+            'note': '目前只有單一主值，尚未取得上市 / 上櫃明細。'
+        }
 
 if __name__ == "__main__":
     scout = QuantSentimentScout()

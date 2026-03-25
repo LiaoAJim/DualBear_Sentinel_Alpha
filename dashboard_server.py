@@ -120,6 +120,8 @@ async def list_history():
             with open(file_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
                 stats = data.get("analysis_stats", {})
+                decision = data.get("decision", {}) or {}
+                quant_data = data.get("quant_data", {}) or {}
                 history_list.append({
                     "date": date,
                     "intelligence_count": data.get("intelligence_count", 0),
@@ -128,7 +130,17 @@ async def list_history():
                         "success": stats.get("success", 0),
                         "failure": stats.get("failure", 0)
                     },
-                    "sentiment_score": data.get("decision", {}).get("sentiment_score")
+                    "sentiment_score": decision.get("sentiment_score"),
+                    "step3": {
+                        "action": decision.get("action"),
+                        "target_position": decision.get("target_position"),
+                        "strategy_label": decision.get("strategy_label"),
+                        "risk_status": decision.get("risk_status"),
+                        "margin_maintenance_ratio": quant_data.get("margin_maintenance_ratio"),
+                        "retail_long_short_ratio": quant_data.get("retail_long_short_ratio"),
+                        "vixtwn": quant_data.get("vixtwn"),
+                        "vixus": quant_data.get("vixus")
+                    }
                 })
         except:
             history_list.append({"date": date})

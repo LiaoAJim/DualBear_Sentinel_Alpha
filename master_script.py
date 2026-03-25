@@ -5,13 +5,12 @@ import time
 from datetime import datetime
 from dotenv import load_dotenv
 
-# --- [關鍵修復]：從 core 模組導入所有需要的特工與腦部 ---
-from core.crawler import DataScout
 from core.analyzer import SentimentAnalyzer
 from core.scout import PttStockScout # 修正導入路徑
 from core.anue_scout import AnueScout # 導入 鉅亨特工
 from core.sentinel import SentinelAlpha # 導入 哨兵策略精算師 (L11)
-from core.quant_scout import QuantSentimentScout # 導入 籌碼情報員
+from news_recon_runner import run_news_recon
+from quant_recon_runner import run_quant_recon
 
 # --- [關鍵定義]：在此檔案中定義 LineNotifier 類別，或從核心導入 ---
 # (為了讓你能直接執行，我將我們先前設計的 LineNotifier 代碼直接放在這裡，
@@ -53,11 +52,82 @@ class LineNotifier:
             return False
 
 # --- [優化]：將報告建構函數搬到外部，並優化時間處理 ---
-def construct_report(decision, intelligence_count):
+def _format_report_metric(value, suffix=""):
+    if value is None or value == "":
+        return "失敗"
+    if isinstance(value, float):
+        return f"{value:.2f}{suffix}"
+    return f"{value}{suffix}"
+
+
+def build_display_quant_data(quant_data=None):
+    quant_data = quant_data or {}
+    status = quant_data.get("_status", {}) if isinstance(quant_data, dict) else {}
+
+    def normalize(field):
+        value = quant_data.get(field) if isinstance(quant_data, dict) else None
+        if value is not None:
+            return value
+        if status.get(field) == "failed":
+            return "失敗"
+        return None
+
+    return {
+        "margin_maintenance_ratio": normalize("margin_maintenance_ratio"),
+        "retail_long_short_ratio": normalize("retail_long_short_ratio"),
+        "vixtwn": normalize("vixtwn"),
+        "vixus": normalize("vixus")
+    }
+
+
+def build_report_guidance(decision, quant_data=None, mode="report"):
+    quant_data = quant_data or {}
+    action = decision.get("action", "")
+    sentiment_score = decision.get("sentiment_score")
+    failed_sources = decision.get("failed_sources") or []
+    vixtwn = quant_data.get("vixtwn")
+    vixus = quant_data.get("vixus")
+
+    score_neutral = sentiment_score is None or abs(sentiment_score) < 0.2
+    high_vix = any(
+        isinstance(v, (int, float)) and v >= 25
+        for v in [vixtwn, vixus]
+    )
+
+    if failed_sources:
+        text = (
+            "本次資料存在缺口，較適合用於風險提醒，不適合單獨作為選股或槓桿依據。"
+        )
+    elif action in {"持平", "持平 (已修正)"} or (score_neutral and high_vix):
+        text = (
+            "本報告較適合用於風險過濾與倉位控制，不適合單獨作為積極進場依據。"
+        )
+    elif action.startswith("減碼"):
+        text = (
+            "本報告偏向風險降溫訊號，較適合降低追價與重倉風險，不宜單靠單日敘事進場。"
+        )
+    else:
+        text = (
+            "本報告可作為觀察強弱與調整倉位的依據，但仍不建議單靠情緒分數進行槓桿交易。"
+        )
+
+    if mode == "history":
+        return text
+    if mode == "line":
+        return text + " 建議用途：降低風險、排除弱勢、觀察逆勢強股。"
+    return (
+        text + "\n"
+        "建議用途：降低追高與重倉風險、排除明顯轉弱族群、觀察震盪中仍相對強勢的標的。"
+    )
+
+
+def construct_report(decision, intelligence_count, quant_data=None):
     now = datetime.now().strftime("%Y-%m-%d %H:%M")
     
     if decision:
         sentiment_score = decision.get('sentiment_score')
+        failed_sources = decision.get('failed_sources') or []
+        failure_line = f"⚠️ 失敗來源: {'、'.join(failed_sources)}\n" if failed_sources else ""
         
         # 安全處理 None 的 sentiment_score
         if sentiment_score is not None:
@@ -67,18 +137,36 @@ def construct_report(decision, intelligence_count):
             score_text = "N/A"
             sentiment_label = "分析失敗"
         
+        quant_data = quant_data or {}
+        margin_text = _format_report_metric(quant_data.get('margin_maintenance_ratio'), " %")
+        retail_text = _format_report_metric(quant_data.get('retail_long_short_ratio'))
+        vixtwn_text = _format_report_metric(quant_data.get('vixtwn'))
+        vixus_text = _format_report_metric(quant_data.get('vixus'))
+        guidance_text = build_report_guidance(decision, quant_data, mode="line")
+
         return (
-            f"📊 DualBear 今日戰略報告\n\n"
+            f"📊 DualBear 哨兵正式戰報\n\n"
             f"🕒 時間: {now}\n"
             f"📡 偵察情報數: {intelligence_count} 則\n"
             f"💡 最終情緒: {score_text} ({sentiment_label})\n\n"
-            f"🛡️ 建議操作: 【{decision.get('action', 'N/A')}】\n"
-            f"📝 理由: {decision.get('recon_notes', 'N/A')}\n\n"
-            f"💡 指揮官，規律覺醒，獲利自由！"
+            f"【決策摘要】\n"
+            f"🛡️ 建議操作: {decision.get('action', 'N/A')}\n"
+            f"🎯 建議倉位: {decision.get('target_position', 'N/A')}\n\n"
+            f"【量化指標】\n"
+            f"💳 融資維持率: {margin_text}\n"
+            f"👥 散戶多空比: {retail_text}\n"
+            f"🇹🇼 台灣 VIX: {vixtwn_text}\n"
+            f"🇺🇸 美國 VIX: {vixus_text}\n\n"
+            f"【戰略理由】\n"
+            f"{decision.get('recon_notes', 'N/A')}\n"
+            f"{failure_line}\n"
+            f"【使用建議】\n"
+            f"{guidance_text}\n\n"
+            f"DualBear Sentinel Alpha"
         )
     else:
         return (
-            f"📊 DualBear 今日戰略報告\n\n"
+            f"📊 DualBear 哨兵正式戰報\n\n"
             f"🕒 時間: {now}\n"
             f"⚠️ 狀態: AI 分析失敗，未能產出決策報告。"
         )
@@ -111,6 +199,33 @@ def get_test_news():
     """當爬蟲模組失敗時的備用測試數據。返回一個空列表或模擬數據。"""
     print("[WARN] 使用測試數據。")
     return [] 
+
+def construct_crawl_failure_decision(failures):
+    failure_text = "、".join(failures) if failures else "未知來源"
+    return {
+        "action": "爬蟲失敗",
+        "target_position": "失敗",
+        "recon_notes": f"⚠️ 爬蟲或量化資料抓取失敗：{failure_text}。本次不產生建議，避免使用錯誤預設值。",
+        "failed_sources": failures or [],
+        "risk_status": "ERROR",
+        "quant_adjustment": None,
+        "sentiment_score": None
+    }
+
+
+def build_failure_variants(failures, sentiment_score=None):
+    variants = {}
+    for profile, label in {
+        "conservative": "保守版",
+        "balanced": "平衡版",
+        "contrarian": "反向極端版"
+    }.items():
+        decision = construct_crawl_failure_decision(failures)
+        decision["strategy_profile"] = profile
+        decision["strategy_label"] = label
+        decision["sentiment_score"] = sentiment_score
+        variants[profile] = decision
+    return variants
 
 def main():
     # 1. 載入環境變數：對齊 Messaging API 規格
@@ -171,18 +286,27 @@ def main():
     
     all_intelligence = []
     quant_data = None
+    source_failures = []
+    decision_failures = []
+    decision_variants = {}
+    report_variants = {}
+    selected_variant = "balanced"
     
     # --- [全域統計計數器]：在所有 try 區塊之前初始化，確保一定可以存到歷史 ---
     total_count = 0
     success_count = 0
     failure_count = 0
     total_score = 0
+    analysis_details = []
     
     try:
         # (A) 輿情採集：廣域偵察
-        from core.crawler import DataScout
-        news_agent = DataScout()
-        all_intelligence = news_agent.fetch_all_news()
+        news_result = run_news_recon()
+        all_intelligence = news_result.get("intelligence", [])
+        source_status = news_result.get("source_status", {})
+        source_failures = news_result.get("source_failures", [])
+        for source_key, status in source_status.items():
+            db_notifier.notify("source_status", {"source": source_key, "status": "success" if status.get("success") else "failed"})
         
         # 📊 來源來源分析
         sources = {}
@@ -196,26 +320,9 @@ def main():
         # 即時更新至儀表板
         for item in all_intelligence:
             db_notifier.notify("intelligence", {"content": item})
-        
-        # (B) 籌碼採集：真理偵察
-        db_notifier.log("🕵️ 籌碼情報員開始採集官網量化指標 (VIX/融資/散戶)...", "scout")
-        quant_agent = QuantSentimentScout()
-        quant_data = quant_agent.fetch_all_indicators()
-        db_notifier.notify("quant_data", quant_data) 
-        
-        # (C) VIX 恐慌指數偵測
-        db_notifier.log("📊 正在取得美國 VIX 恐慌指數...", "scout")
-        try:
-            from core.vix_scout import VIXScout
-            vix_scout = VIXScout()
-            vix_data = vix_scout.fetch()
-            if vix_data.get("status") == "success":
-                db_notifier.notify("vix_data", vix_data)
-                db_notifier.log(f"📈 VIX: {vix_data.get('value', 'N/A')} ({vix_data.get('interpretation', 'N/A')})", "scout")
-            else:
-                db_notifier.log(f"⚠️ VIX 取得失敗: {vix_data.get('message', '未知錯誤')}", "warning")
-        except Exception as e:
-            db_notifier.log(f"⚠️ VIX 模組載入失敗: {str(e)}", "warning")
+
+        if source_failures:
+            db_notifier.log(f"⚠️ Step 1 情報來源不完整：{'、'.join(source_failures)}", "warning")
         
     except Exception as e:
         db_notifier.log(f"❌ 偵察階段發生嚴重錯誤: {str(e)}", "error")
@@ -225,7 +332,21 @@ def main():
     if not all_intelligence:
         db_notifier.log("今日未抓取到任何有效市場情報，任務終止。", "warning")
         db_notifier.status("idle")
-        notifier.send_text("⚠️ 今日偵察報告: 未抓取到有效情報。請檢查官網連線。")
+        failure_quant = {
+            "margin_maintenance_ratio": "失敗",
+            "retail_long_short_ratio": "失敗",
+            "vixtwn": "失敗",
+            "vixus": "失敗"
+        }
+        db_notifier.notify("quant_data", failure_quant)
+        decision_variants = build_failure_variants(["市場情報"])
+        report_variants = {
+            profile: construct_report(decision, intelligence_count, failure_quant)
+            for profile, decision in decision_variants.items()
+        }
+        failure_decision = decision_variants[selected_variant]
+        db_notifier.notify("decision", failure_decision)
+        notifier.send_text(report_variants[selected_variant])
         return
 
     # --- Block 2: AI Analysis & Sentinel Decision ---
@@ -259,12 +380,28 @@ def main():
                     flavor = result.get('flavor', '中性')
                     total_score += score
                     success_count += 1
+                    analysis_details.append({
+                        "title": intelligence.get("title", ""),
+                        "source": src,
+                        "status": "success",
+                        "provider": ai_name,
+                        "score": score,
+                        "flavor": flavor
+                    })
                     db_notifier.log(f"   L [{ai_name}] 判定: {score} ({flavor})", "info")
                 elif result and result.get('error'):
                     # 分析失敗：根據錯誤類型顯示不同訊息
                     failure_count += 1
                     err_type = result.get('error_type', 'UNKNOWN')
                     err_msg  = result.get('msg', '')
+                    analysis_details.append({
+                        "title": intelligence.get("title", ""),
+                        "source": src,
+                        "status": "failed",
+                        "provider": ai_name,
+                        "error_type": err_type,
+                        "message": err_msg
+                    })
                     
                     if err_type == ERR_ALL_KEYS_FAIL:
                         db_notifier.log(f"   L [!] AI 全滅 ({ai_name})，跳過此條。", "error")
@@ -281,6 +418,14 @@ def main():
                     continue
                 else:
                     failure_count += 1
+                    analysis_details.append({
+                        "title": intelligence.get("title", ""),
+                        "source": src,
+                        "status": "failed",
+                        "provider": ai_name,
+                        "error_type": "UNKNOWN",
+                        "message": "AI 回傳為空或格式未知"
+                    })
                     db_notifier.log(f"   L AI 回傳為空或格式未知", "warning")
                 
                 # 即時更新統計數據至儀表板
@@ -289,6 +434,14 @@ def main():
             except Exception as e:
                 failure_count += 1
                 db_notifier.send_analysis_stats(total_count, success_count, failure_count)
+                analysis_details.append({
+                    "title": intelligence.get("title", ""),
+                    "source": intelligence.get("source", "未知"),
+                    "status": "failed",
+                    "provider": "unknown",
+                    "error_type": "EXCEPTION",
+                    "message": str(e)
+                })
                 db_notifier.log(f"[!] 迴圈分析發生異常: {str(e)}", "warning")
 
         # 精算最終的情緒分數
@@ -303,38 +456,88 @@ def main():
         else:
             db_notifier.log("❌ AI 全數分析失敗，無法計算情緒指數。", "error")
 
-        # --- [關鍵聯動]：策略精算師 ---
-        db_notifier.log("🛡️ 正在計算最終策略佈置...", "system")
-        sentinel = SentinelAlpha()
-        decision = sentinel.calculate_position(final_sentiment_score, quant_data=quant_data)
-        
-        decision['sentiment_score'] = final_sentiment_score
-        
-        # 即時推送到儀表板最後結果
         db_notifier.notify("analysis_result", {"final_score": final_sentiment_score})
-        db_notifier.notify("decision", decision)
-
-        final_decision = decision
-        db_notifier.log(f"🎯 哨兵策略生成：建議【{decision['action']}】", "success")
         
     except Exception as e:
         db_notifier.log(f"❌ 分析決策階段發生錯誤: {str(e)}", "error")
         final_decision = None
+        final_sentiment_score = None
 
-    # --- Block 3: Final Report Construction ---
+    # --- Block 3: Step 3 Quant + Sentinel Decision ---
     db_notifier.status("reporting")
+    db_notifier.log("🛡️ Step 3 哨兵決策判斷啟動：正在採集融資 / 散戶 / 台美 VIX...", "system")
+
+    try:
+        quant_result = run_quant_recon()
+        quant_data = quant_result.get("quant_data")
+        decision_failures = quant_result.get("decision_failures", [])
+        quant_errors = (quant_data or {}).get("_errors", {})
+        for field_name, error_message in quant_errors.items():
+            if error_message:
+                db_notifier.log(f"⚠️ Step 3 {field_name} 失敗原因: {error_message}", "warning")
+    except Exception as e:
+        db_notifier.log(f"❌ Step 3 數值偵察失敗: {str(e)}", "error")
+        decision_failures.extend(["融資", "散戶", "台灣VIX", "美國VIX"])
+        quant_data = {
+            "_status": {
+                "margin_maintenance_ratio": "failed",
+                "retail_long_short_ratio": "failed",
+                "vixtwn": "failed",
+                "vixus": "failed"
+            },
+            "_errors": {
+                "margin_maintenance_ratio": str(e),
+                "retail_long_short_ratio": str(e),
+                "vixtwn": str(e),
+                "vixus": str(e)
+            }
+        }
+
+    display_quant_data = build_display_quant_data(quant_data)
+    db_notifier.notify("quant_data", display_quant_data)
+
+    if decision_failures:
+        db_notifier.log(f"⚠️ Step 3 決策資料不完整：{'、'.join(decision_failures)}，將以可用參數繼續精算。", "warning")
+
+    try:
+        db_notifier.log("🛡️ 正在計算最終策略佈置...", "system")
+        sentinel = SentinelAlpha()
+        decision_variants = sentinel.calculate_variants(final_sentiment_score, quant_data=quant_data)
+        for variant in decision_variants.values():
+            variant['sentiment_score'] = final_sentiment_score
+            variant['failed_sources'] = (variant.get('failed_sources') or []) + decision_failures
+        report_variants = {
+            profile: construct_report(decision, intelligence_count, display_quant_data)
+            for profile, decision in decision_variants.items()
+        }
+        final_decision = decision_variants[selected_variant]
+        db_notifier.notify("decision", final_decision)
+        db_notifier.log(
+            "🧾 三版決策已生成："
+            + " / ".join(
+                f"{decision_variants[p]['strategy_label']}={decision_variants[p]['action']} {decision_variants[p]['target_position']}"
+                for p in ["conservative", "balanced", "contrarian"]
+            ),
+            "system"
+        )
+        db_notifier.log(f"🎯 哨兵策略生成：建議【{final_decision['action']}】", "success")
+    except Exception as e:
+        db_notifier.log(f"❌ Step 3 決策生成失敗: {str(e)}", "error")
+        final_decision = None
+
+    # --- Block 4: Final Report Construction ---
     db_notifier.log("📊 正在建構與發送最終戰略報告...", "system")
     
-    report = construct_report(final_decision, intelligence_count) 
+    report = report_variants.get(selected_variant) or construct_report(final_decision, intelligence_count, display_quant_data)
     
-    # --- Block 4: Final Reporting (LINE) ---
+    # --- Block 5: Final Reporting (LINE) ---
     try:
         notifier.send_text(report)
         db_notifier.log("✅ LINE 戰略通報已送達 comandante 終端。", "success")
     except Exception as e:
         db_notifier.log(f"❌ LINE 發送失敗: {str(e)}", "error")
 
-    # --- Block 5: Persistence (Save History) ---
+    # --- Block 6: Persistence (Save History) ---
     db_notifier.log("💾 正在執行數據持久化...", "system")
     try:
         history_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs", "history")
@@ -358,9 +561,15 @@ def main():
                 "success": stats_success,
                 "failure": stats_failure
             },
+            "analysis_details": analysis_details,
             "intelligence": all_intelligence,
             "decision": final_decision,
-            "quant_data": quant_data  # 加入量化數據（包含 VIX、融資、散戶比）
+            "selected_variant": selected_variant,
+            "decision_variants": decision_variants,
+            "quant_data": display_quant_data,  # UI / 歷史快照使用可視化值，失敗欄位直接標示為失敗
+            "report": report,
+            "report_variants": report_variants,
+            "report_guidance": build_report_guidance(final_decision or {}, display_quant_data, mode="history")
         }
         
         with open(today_file, "w", encoding="utf-8") as f:

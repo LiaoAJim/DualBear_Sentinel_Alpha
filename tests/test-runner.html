@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>DualBear Sentinel - Unit Tests</title>
+    <style>
+        body { font-family: monospace; background: #1a1a2e; color: #eee; padding: 20px; }
+        .pass { color: #10b981; }
+        .fail { color: #ef4444; }
+        h2 { border-bottom: 1px solid #333; padding-bottom: 10px; }
+        pre { background: #16213e; padding: 15px; border-radius: 8px; overflow-x: auto; }
+        .test-section { margin: 20px 0; padding: 15px; background: rgba(255,255,255,0.05); border-radius: 8px; }
+        .test-section h3 { margin-top: 0; color: var(--accent-blue, #00d2ff); }
+    </style>
+</head>
+<body>
+    <h1>🧪 DualBear Sentinel 單元測試</h1>
+    
+    <h2>Python 測試</h2>
+    <pre>pip install pytest pytest-mock
+pytest tests/ -v</pre>
+    
+    <h2>JavaScript 測試</h2>
+    <p>瀏覽器中打開此頁面自動運行所有測試</p>
+    
+    <div class="test-section">
+        <h3>📡 Step 1: 情報偵察 (Intelligence Panel)</h3>
+        <pre>/static/js/intelligence-panel.js
+/static/js/intelligence-panel.test.js</pre>
+    </div>
+    
+    <div class="test-section">
+        <h3>🧠 Step 2: AI情緒核心 (Sentiment Panel) - 新模組化架構</h3>
+        <pre>// 組件模板
+templates/sentiment-panel.html (完整面板)
+templates/components/sentiment-gauge.html
+templates/components/sentiment-stats.html
+templates/components/provider-select.html
+templates/components/ai-thought-bubble.html
+
+// 組件 JS 模組
+static/js/components/sentiment-gauge.js
+static/js/components/sentiment-stats.js
+static/js/components/provider-selector.js
+static/js/components/ai-thought-bubble.js
+static/js/sentiment-panel.js (整合模組)
+
+// 單元測試
+static/js/components/sentiment-gauge.test.js
+static/js/components/sentiment-stats.test.js
+static/js/components/provider-selector.test.js
+static/js/components/ai-thought-bubble.test.js
+static/js/sentiment-panel.test.js (整合測試)</pre>
+    </div>
+
+    <div class="test-section">
+        <h3>♟️ Step 3: 哨兵決策判斷 (Decision Panel)</h3>
+        <pre>// 組件模板
+templates/decision-panel.html
+
+// 組件 JS 模組
+static/js/components/decision-panel.js
+
+// 單元測試
+static/js/components/decision-panel.test.js</pre>
+    </div>
+
+    <!-- Step 1: Intelligence Panel -->
+    <script src="/static/js/intelligence-panel.js"></script>
+    <script src="/static/js/intelligence-panel.test.js"></script>
+    
+    <!-- Step 2: Sentiment Panel Components (載入順序重要) -->
+    <script src="/static/js/components/sentiment-gauge.js"></script>
+    <script src="/static/js/components/sentiment-stats.js"></script>
+    <script src="/static/js/components/provider-selector.js"></script>
+    <script src="/static/js/components/ai-thought-bubble.js"></script>
+    <script src="/static/js/components/decision-panel.js"></script>
+    <script src="/static/js/sentiment-panel.js"></script>
+    
+    <!-- Tests -->
+    <script src="/static/js/components/sentiment-gauge.test.js"></script>
+    <script src="/static/js/components/sentiment-stats.test.js"></script>
+    <script src="/static/js/components/provider-selector.test.js"></script>
+    <script src="/static/js/components/ai-thought-bubble.test.js"></script>
+    <script src="/static/js/components/decision-panel.test.js"></script>
+    <script src="/static/js/sentiment-panel.test.js"></script>
+</body>
+</html>

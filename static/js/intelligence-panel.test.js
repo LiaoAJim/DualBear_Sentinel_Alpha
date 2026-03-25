@@ -8,6 +8,7 @@
  * - clearNews: 清除新聞
  * - getNewsCount: 取得數量
  * - setMaxItems: 設定最大數量
+ * - markSourceComplete / markSourceFailed: 偵察來源狀態
  */
 
 const TestRunner = (function() {
@@ -59,6 +60,7 @@ const TestRunner = (function() {
         testClearNews();
         testGetNewsCount();
         testSetMaxItems();
+        testSourceStatus();
         
         // 輸出結果
         console.log('='.repeat(50));
@@ -76,10 +78,25 @@ const TestRunner = (function() {
         
         const mockCount = document.createElement('span');
         mockCount.id = 'news-count';
-        mockCount.textContent = '0 則偵察';
+        mockCount.textContent = '- 則偵察';
+
+        const mockReconCount = document.createElement('span');
+        mockReconCount.id = 'recon-complete-count';
+        mockReconCount.textContent = '-';
+
+        const mockPtt = document.createElement('span');
+        mockPtt.id = 'src-ptt';
+        mockPtt.innerHTML = 'PTT <span class="status">○</span>';
+
+        const mockAnue = document.createElement('span');
+        mockAnue.id = 'src-anue';
+        mockAnue.innerHTML = '鉅亨 <span class="status">○</span>';
         
         document.body.appendChild(mockFeed);
         document.body.appendChild(mockCount);
+        document.body.appendChild(mockReconCount);
+        document.body.appendChild(mockPtt);
+        document.body.appendChild(mockAnue);
         
         // 重新初始化模組
         if (IntelligencePanel && IntelligencePanel.init) {
@@ -178,6 +195,32 @@ const TestRunner = (function() {
         
         const count = IntelligencePanel.getNewsCount();
         assertEqual(count, 2, '超過最大值後應為 2');
+    }
+
+    function testSourceStatus() {
+        console.log('\n--- testSourceStatus ---');
+
+        IntelligencePanel.resetSourceStatus();
+        IntelligencePanel.markSourceComplete('PTT Stock');
+
+        let pttStatus = document.querySelector('#src-ptt .status').textContent;
+        let completeCount = document.getElementById('recon-complete-count').textContent;
+        assertEqual(pttStatus, '✓', '成功來源應顯示打勾');
+        assertEqual(completeCount, '1', '成功後完成數應為 1');
+
+        IntelligencePanel.markSourceFailed('鉅亨網 ANUE');
+        let anueStatus = document.querySelector('#src-anue .status').textContent;
+        completeCount = document.getElementById('recon-complete-count').textContent;
+        assertEqual(anueStatus, '✕', '失敗來源應顯示打叉');
+        assertEqual(completeCount, '2', '失敗也應計入完成數');
+
+        IntelligencePanel.resetSourceStatus();
+        pttStatus = document.querySelector('#src-ptt .status').textContent;
+        anueStatus = document.querySelector('#src-anue .status').textContent;
+        completeCount = document.getElementById('recon-complete-count').textContent;
+        assertEqual(pttStatus, '○', '重置後來源應恢復空心圓');
+        assertEqual(anueStatus, '○', '重置後失敗來源也應恢復空心圓');
+        assertEqual(completeCount, '0', '重置後完成數應歸零');
     }
     
     return {

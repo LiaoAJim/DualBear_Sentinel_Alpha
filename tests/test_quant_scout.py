@@ -128,10 +128,15 @@ class TestQuantSentimentScout:
         
         assert 'timestamp' in result
         assert 'margin_maintenance_ratio' in result
+        assert 'margin_maintenance_ratio_market' in result
         assert 'retail_long_short_ratio' in result
         assert 'vixtwn' in result
         assert 'vixus' in result
         assert result['margin_maintenance_ratio'] == 145.5
+        assert result['margin_maintenance_ratio_market']['listed'] is None
+        assert result['margin_maintenance_ratio_market']['otc'] is None
+        assert result['margin_maintenance_ratio_market']['market'] == 145.5
+        assert result['margin_maintenance_ratio_market']['method'] == 'source_aggregate'
         assert result['retail_long_short_ratio'] == 5.13
         assert result['vixtwn'] == 36.32
         assert result['vixus'] == 27.35
@@ -181,6 +186,38 @@ class TestQuantSentimentScout:
         assert result['_attempts']['vixtwn'][0]['status'] == 'failed'
         assert result['_attempts']['vixtwn'][1]['source'] == 'twse_mi_vix_api'
         assert result['_attempts']['vixtwn'][1]['status'] == 'success'
+
+    def test_choose_margin_market_value_prefers_listed(self):
+        value = self.scout._choose_margin_market_value({
+            'listed': 178.51,
+            'otc': 176.22
+        })
+        assert value == 178.51
+
+    def test_build_margin_market_breakdown_uses_aggregate_source(self):
+        self.scout._record_margin_market_values('wantgoo_margin_page', aggregate=178.51)
+        result = self.scout._build_margin_market_breakdown({
+            'margin_maintenance_ratio': 178.51
+        })
+
+        assert result['listed'] is None
+        assert result['otc'] is None
+        assert result['market'] == 178.51
+        assert result['method'] == 'source_aggregate'
+
+    def test_build_margin_market_breakdown_marks_listed_priority_proxy(self):
+        self.scout._record_margin_market_values(
+            'pscnet_credit_playwright',
+            market_values={'listed': 178.51, 'otc': 176.22}
+        )
+        result = self.scout._build_margin_market_breakdown({
+            'margin_maintenance_ratio': 178.51
+        })
+
+        assert result['listed'] == 178.51
+        assert result['otc'] == 176.22
+        assert result['market'] == 178.51
+        assert result['method'] == 'proxy_listed_priority'
 
     @patch.object(requests, 'get')
     def test_margin_failure_returns_none(self, mock_get):

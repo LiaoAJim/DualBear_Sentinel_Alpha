@@ -8,7 +8,24 @@ const IntelligencePanel = (function() {
     
     let newsFeed = null;
     let newsCount = null;
+    let intelligenceLog = null;
     let maxItems = 50;
+    let logEntries = [];
+    const reconSourceMap = {
+        ptt: ['ptt', 'ptt stock'],
+        anue: ['anue', '鉅亨', '鉅亨網', '鉅亨網 anue'],
+        yahoo: ['yahoo', 'yahoo 股市'],
+        udn: ['udn', '經濟日報', '經濟日報 udn'],
+        moneydj: ['moneydj'],
+        ctee: ['ctee', '工商'],
+        tianxia: ['天下', 'tianxia'],
+        caixin: ['財訊', 'caixin'],
+        cmoney: ['cmoney'],
+        ettoday: ['東森', 'ettoday'],
+        tvbs: ['tvbs'],
+        cna: ['中央社', 'cna']
+    };
+    const finishedReconSources = new Set();
     
     /**
      * 初始化面板
@@ -16,6 +33,7 @@ const IntelligencePanel = (function() {
     function init() {
         newsFeed = document.getElementById('intelligence-feed');
         newsCount = document.getElementById('news-count');
+        intelligenceLog = document.getElementById('intelligence-log');
         
         if (!newsFeed || !newsCount) {
             console.warn('[IntelligencePanel] 找不到必要的 DOM 元素');
@@ -23,6 +41,111 @@ const IntelligencePanel = (function() {
         }
         
         console.log('[IntelligencePanel] 已初始化');
+    }
+
+    function renderLogs() {
+        if (!intelligenceLog) return;
+        if (logEntries.length === 0) {
+            intelligenceLog.innerHTML = '<div class="log-entry system">等待 Step 1 偵察任務啟動。</div>';
+            return;
+        }
+
+        intelligenceLog.innerHTML = logEntries
+            .slice(-40)
+            .reverse()
+            .map((log) => `<div class="log-entry ${log.type}"><span class="log-timestamp">[${log.time}]</span> ${log.message}</div>`)
+            .join('');
+    }
+
+    function addLog(message, type = 'info') {
+        const now = new Date();
+        const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+        logEntries.push({ time: timeStr, message, type });
+        if (logEntries.length > 80) {
+            logEntries = logEntries.slice(-80);
+        }
+        renderLogs();
+    }
+
+    function resetLogs() {
+        logEntries = [];
+        renderLogs();
+    }
+
+    function normalizeSourceName(source) {
+        return (source || '').toString().trim().toLowerCase();
+    }
+
+    function findReconSourceKey(source) {
+        const normalized = normalizeSourceName(source);
+        if (!normalized) return null;
+
+        for (const [key, aliases] of Object.entries(reconSourceMap)) {
+            if (aliases.some(alias => normalized.includes(alias))) {
+                return key;
+            }
+        }
+        return null;
+    }
+
+    function updateReconCompleteCount() {
+        const reconCompleteCount = document.getElementById('recon-complete-count');
+        if (reconCompleteCount) {
+            reconCompleteCount.innerText = String(finishedReconSources.size);
+        }
+    }
+
+    function markSourceComplete(source) {
+        const sourceKey = findReconSourceKey(source);
+        if (!sourceKey || finishedReconSources.has(sourceKey)) return;
+
+        finishedReconSources.add(sourceKey);
+        const sourceEl = document.getElementById(`src-${sourceKey}`);
+        if (!sourceEl) {
+            updateReconCompleteCount();
+            return;
+        }
+
+        const statusEl = sourceEl.querySelector('.status');
+        if (statusEl) statusEl.innerText = '✓';
+        sourceEl.classList.remove('failure');
+        sourceEl.classList.add('success');
+        sourceEl.style.color = 'var(--accent-blue)';
+        updateReconCompleteCount();
+    }
+
+    function markSourceFailed(source) {
+        const sourceKey = findReconSourceKey(source);
+        if (!sourceKey || finishedReconSources.has(sourceKey)) return;
+
+        finishedReconSources.add(sourceKey);
+        const sourceEl = document.getElementById(`src-${sourceKey}`);
+        if (!sourceEl) {
+            updateReconCompleteCount();
+            return;
+        }
+
+        const statusEl = sourceEl.querySelector('.status');
+        if (statusEl) statusEl.innerText = '✕';
+        sourceEl.classList.remove('success');
+        sourceEl.classList.add('failure');
+        sourceEl.style.color = 'var(--danger)';
+        updateReconCompleteCount();
+    }
+
+    function resetSourceStatus() {
+        finishedReconSources.clear();
+        updateReconCompleteCount();
+
+        Object.keys(reconSourceMap).forEach((sourceKey) => {
+            const sourceEl = document.getElementById(`src-${sourceKey}`);
+            if (!sourceEl) return;
+
+            const statusEl = sourceEl.querySelector('.status');
+            if (statusEl) statusEl.innerText = '○';
+            sourceEl.classList.remove('success', 'failure');
+            sourceEl.style.color = '';
+        });
     }
     
     /**
@@ -90,6 +213,8 @@ const IntelligencePanel = (function() {
         `;
         
         newsCount.innerText = '- 則偵察';
+        resetSourceStatus();
+        resetLogs();
     }
     
     /**
@@ -134,6 +259,12 @@ const IntelligencePanel = (function() {
         clearNews,
         getNewsCount,
         setMaxItems,
+        markSourceComplete,
+        markSourceFailed,
+        resetSourceStatus,
+        addLog,
+        resetLogs,
+        findReconSourceKey,
         init
     };
 })();

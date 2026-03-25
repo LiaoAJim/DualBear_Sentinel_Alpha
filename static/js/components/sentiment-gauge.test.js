@@ -163,10 +163,10 @@ const SentimentGaugeTests = (function() {
         SentimentGauge.reset();
         
         let scoreText = document.getElementById('current-score').innerText;
-        assertEqual(scoreText, '0.00', '重置後分數應為 0.00');
+        assertEqual(scoreText, '--', '重置後分數應為 --');
         
         let label = document.getElementById('sentiment-flavor').innerText;
-        assertEqual(label, '中性', '重置後標籤應為中性');
+        assertEqual(label, '等待分析', '重置後標籤應為等待分析');
     }
     
     function testNullScore() {

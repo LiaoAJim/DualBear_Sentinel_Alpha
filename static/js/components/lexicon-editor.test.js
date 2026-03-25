@@ -7,7 +7,6 @@
  * - open/close/toggle: 顯示控制
  * - getCurrentCategory/setCurrentCategory: 分類管理
  * - getCategories: 獲取分類列表
- * - quickAdd: 快速添加詞彙
  * - getWordsText/setWordsText: 詞彙文字操作
  * - updateCount: 計數更新
  * - onSave/onLoad: 回調訂閱
@@ -51,11 +50,7 @@ const LexiconEditorTests = (function() {
                 </select>
                 <span id="lexicon-count">0 個詞</span>
                 <textarea id="lexicon-words"></textarea>
-                <input id="lexicon-quick-add" type="text">
-                <button id="btn-add-positive">正向</button>
-                <button id="btn-add-negative">負向</button>
                 <button id="btn-save-lexicon">儲存</button>
-                <button id="btn-reload-lexicon">重新載入</button>
             </div>
         `;
         document.body.appendChild(container);
@@ -76,7 +71,6 @@ const LexiconEditorTests = (function() {
         testGetCategories();
         testGetCurrentCategory();
         testSetCurrentCategory();
-        testQuickAdd();
         testWordsText();
         testUpdateCount();
         testCallbacks();
@@ -124,41 +118,6 @@ const LexiconEditorTests = (function() {
         result = LexiconEditor.setCurrentCategory('invalid_category');
         category = LexiconEditor.getCurrentCategory();
         assertEqual(category, 'bearish_extreme', '無效分類應不改變當前選擇');
-    }
-    
-    function testQuickAdd() {
-        console.log('\n--- testQuickAdd ---');
-        
-        const quickAddInput = document.getElementById('lexicon-quick-add');
-        const wordsTextarea = document.getElementById('lexicon-words');
-        
-        // 測試中性添加
-        quickAddInput.value = '測試詞彙';
-        LexiconEditor.quickAdd('neutral');
-        
-        let text = wordsTextarea.value;
-        assertEqual(text, '測試詞彙', '中性添加應直接添加詞彙');
-        
-        // 測試正向添加
-        quickAddInput.value = '漲停';
-        LexiconEditor.quickAdd('positive');
-        
-        text = wordsTextarea.value;
-        assertEqual(text.includes('🔴'), true, '正向添加應有 🔴 前綴');
-        
-        // 測試負向添加
-        quickAddInput.value = '跌停';
-        LexiconEditor.quickAdd('negative');
-        
-        text = wordsTextarea.value;
-        assertEqual(text.includes('🔵'), true, '負向添加應有 🔵 前綴');
-        
-        // 測試空輸入
-        quickAddInput.value = '';
-        LexiconEditor.quickAdd('neutral');
-        
-        const oldLength = wordsTextarea.value.length;
-        assertEqual(wordsTextarea.value.length, oldLength, '空輸入應不添加');
     }
     
     function testWordsText() {
