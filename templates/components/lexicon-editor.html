@@ -1,0 +1,81 @@
+<!-- 
+  情緒詞庫編輯器模組 (Lexicon Editor Component)
+  獨立的情緒詞彙管理介面
+-->
+<div id="lexicon-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-content" style="max-width: 800px; max-height: 85vh; border: 1px solid var(--accent-blue);">
+        <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <h3 style="margin: 0; color: var(--accent-blue);"><i class="fas fa-book-open"></i> 情緒詞庫編輯器</h3>
+            <button id="close-lexicon" class="close-btn">&times;</button>
+        </div>
+        <div style="padding: 15px; overflow-y: auto; max-height: calc(85vh - 120px);">
+            <!-- 說明 -->
+            <div style="background: rgba(0,210,255,0.05); padding: 12px; border-radius: 8px; margin-bottom: 15px; border: 1px solid rgba(0,210,255,0.2);">
+                <p style="margin: 0 0 8px 0; color: var(--accent-blue); font-size: 12px; font-weight: bold;">
+                    <i class="fas fa-info-circle"></i> 詞庫說明
+                </p>
+                <ul style="margin: 0; padding-left: 20px; font-size: 11px; color: var(--text-dim); line-height: 1.8;">
+                    <li>每行一個詞彙，格式：<code style="background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px;">詞彙|分數</code></li>
+                    <li>分數範圍：<code style="color: #10b981;">正向 1-10</code>、<code style="color: #ef4444;">負向 -1 to -10</code></li>
+                    <li>例如：<code style="background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px;">漲停|5</code>、<code style="background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px;">利多出盡|-2</code></li>
+                </ul>
+            </div>
+            
+            <!-- 當前分類 -->
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; font-size: 12px; color: var(--text-dim); margin-bottom: 8px;">
+                    <i class="fas fa-folder-open"></i> 選擇分類
+                </label>
+                <select id="lexicon-category" style="
+                    background: rgba(0,0,0,0.3);
+                    border: 1px solid var(--glass-border);
+                    color: #fff;
+                    padding: 8px 12px;
+                    border-radius: 6px;
+                    width: 100%;
+                    font-size: 12px;
+                ">
+                    <option value="bullish_extreme">🚀 極度正向 (權重 5)</option>
+                    <option value="bullish_strong">📈 強正向 (權重 3)</option>
+                    <option value="bullish_mild">👍 輕微正向 (權重 1)</option>
+                    <option value="bearish_extreme">💀 極度負向 (權重 -5)</option>
+                    <option value="bearish_strong">📉 強負向 (權重 -3)</option>
+                    <option value="bearish_mild">👎 輕微負向 (權重 -1)</option>
+                    <option value="sarcasm_negative">⚠️ 反諷/利空出盡 (權重 -2)</option>
+                    <option value="quant_terms">📊 量化術語 (權重 2)</option>
+                    <option value="crisis_terms">🚨 危機術語 (權重 -3)</option>
+                </select>
+            </div>
+            
+            <!-- 當前分類詞彙 -->
+            <div style="margin-bottom: 15px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <label style="font-size: 12px; color: var(--text-dim);">
+                        <i class="fas fa-list"></i> 當前分類詞彙
+                    </label>
+                    <span id="lexicon-count" style="font-size: 10px; color: var(--accent-blue);">0 個詞</span>
+                </div>
+                <textarea id="lexicon-words" style="
+                    width: 100%;
+                    height: 150px;
+                    background: rgba(0,0,0,0.4);
+                    border: 1px solid var(--glass-border);
+                    border-radius: 8px;
+                    color: #fff;
+                    padding: 12px;
+                    font-size: 13px;
+                    font-family: 'Consolas', monospace;
+                    resize: vertical;
+                    line-height: 1.6;
+                " placeholder="在此輸入詞彙，每行一個..."></textarea>
+            </div>
+            
+            <!-- 操作按鈕 -->
+            <div style="display: flex; gap: 10px; justify-content: flex-end; padding-top: 15px; border-top: 1px solid var(--glass-border);">
+                <button id="btn-save-lexicon" style="background: linear-gradient(135deg, #00d2ff 0%, #3a7bd5 100%); border: none; color: #fff; padding: 10px 25px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 12px;">
+                    <i class="fas fa-save"></i> 儲存變更
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

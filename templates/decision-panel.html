@@ -1,0 +1,50 @@
+<!-- Step 3: 哨兵決策判斷 Panel Component -->
+<section class="panel" id="decision-panel" style="display: flex; flex-direction: column; overflow: hidden;">
+    <div class="panel-header">
+        <h2 class="panel-title"><i class="fas fa-chess-knight"></i> <span style="color: var(--accent-pink); margin-right: 5px;">Step 3</span> 哨兵決策判斷</h2>
+    </div>
+    <div style="flex: 1; overflow-y: auto;">
+    <div class="decision-card">
+        <div class="decision-label">建議操作</div>
+        <div id="decision-action" class="decision-action">--</div>
+        
+        <div class="decision-label">建議倉位</div>
+        <div id="target-position" class="decision-value">--</div>
+        
+        <!-- 核心量化指標：直接佈局，不再有多餘容器感 -->
+        <div class="quant-stats-container">
+            <div class="quant-item">
+                <span class="quant-label">融資</span>
+                <span id="quant-margin" class="quant-value">--</span>
+            </div>
+            <div class="quant-item">
+                <span class="quant-label">散戶</span>
+                <span id="quant-retail" class="quant-value">--</span>
+            </div>
+            <div class="quant-item">
+                <span class="quant-label">VIX</span>
+                <span id="quant-vix" class="quant-value">--</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="recon-notes-container" style="flex: 1; padding: 0 15px;">
+        <h3 class="notes-title" style="font-size: 11px; color: var(--text-dim); margin-bottom: 10px;">
+            <i class="fas fa-file-contract"></i> 戰略理由 (Recon Notes)
+        </h3>
+        <p id="decision-notes" class="notes-content" style="font-size: 13px; line-height: 1.6; color: #cbd5e1;">
+            系統持續監控市場脈動中...
+        </p>
+    </div>
+    </div>
+
+    <!-- LINE 通訊狀態頁腳 -->
+    <div class="panel-footer" style="padding: 12px 15px; border-top: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.2);">
+        <div class="line-status-info" style="font-size: 11px; color: #fff; display: flex; align-items: center; gap: 8px;">
+            <i class="fab fa-line" style="font-size: 14px; color: #00c300;"></i> LINE 通訊狀態
+        </div>
+        <div class="line-sync-state" style="font-size: 11px; color: #00c300; display: flex; align-items: center; gap: 5px;">
+            <span class="sync-dot"></span> 同步傳輸中
+        </div>
+    </div>
+</section>

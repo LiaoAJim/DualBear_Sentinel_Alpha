@@ -1,0 +1,116 @@
+<!-- 
+  Step 2: AI情緒核心 (AI Emotion Core Panel)
+  獨立模組化麵板組件
+-->
+<section class="panel" id="sentiment-panel" style="display: flex; flex-direction: column; overflow: hidden;">
+    <div class="panel-header" style="flex-wrap: nowrap; gap: 8px; align-items: center;">
+        <h2 class="panel-title" style="white-space: nowrap; margin-right: auto;">
+            <i class="fas fa-microchip"></i> 
+            <span style="color: var(--accent-purple); margin-right: 5px;">Step 2</span> 
+            AI情緒核心
+        </h2>
+        <!-- 分析統計組件容器 -->
+        <div class="analysis-stats" id="analysis-stats-container" style="display: flex; gap: 6px;">
+            <span class="stat-item" title="總分析數量"><i class="fas fa-list-ol"></i> <span id="stat-total">-</span></span>
+            <span class="stat-item success" title="分析成功"><i class="fas fa-check-circle"></i> <span id="stat-success">-</span></span>
+            <span class="stat-item failure" title="分析失敗"><i class="fas fa-exclamation-triangle"></i> <span id="stat-failure">-</span></span>
+        </div>
+    </div>
+    
+    <div class="scroll-wrapper" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column;">
+        <div class="sentiment-display" style="position: relative; min-height: 0; flex-shrink: 0;">
+            <!-- 報告時間戳 -->
+            <div class="report-timestamp" id="report-timestamp" style="
+                position: absolute;
+                top: 10px;
+                left: 15px;
+                font-size: 10px;
+                color: var(--accent-blue);
+                font-weight: 600;
+                opacity: 0.8;
+                z-index: 5;
+                display: none;
+            "></div>
+            
+            <!-- AI 引擎選單組件 -->
+            <select id="provider-select" style="
+                position: absolute;
+                top: 10px;
+                right: 10px;
+                z-index: 10;
+                background: rgba(30, 34, 39, 0.9);
+                border: 1px solid rgba(255, 255, 255, 0.15);
+                color: #fff;
+                font-size: 10px;
+                padding: 4px 8px;
+                border-radius: 6px;
+                cursor: pointer;
+                min-width: 120px;
+            ">
+                <option value="auto">⚙️ Auto</option>
+                <option value="gemini">✨ Gemini</option>
+                <option value="nvidia">⚡ NVIDIA</option>
+                <option value="rule">📋 規則引擎</option>
+            </select>
+            
+            <!-- 情緒詞庫按鈕 -->
+            <button id="btn-lexicon-step2" style="
+                position: absolute;
+                top: 50px;
+                right: 10px;
+                z-index: 10;
+                background: rgba(0, 210, 255, 0.15);
+                border: 1px solid rgba(0, 210, 255, 0.3);
+                color: var(--accent-blue);
+                font-size: 10px;
+                padding: 4px 10px;
+                border-radius: 6px;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                gap: 4px;
+            " title="開啟情緒詞庫">
+                <i class="fas fa-book-open"></i> 詞庫
+            </button>
+            
+            <!-- 情緒儀表組件 (SVG Gauge) -->
+            <div class="gauge-container">
+                <svg viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="45" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="6"/>
+                    <circle id="gauge-progress" cx="50" cy="50" r="45" fill="none" 
+                            stroke="url(#gauge-gradient)" stroke-width="6" 
+                            stroke-dasharray="282.7" stroke-dashoffset="282.7"
+                            transform="rotate(-90 50 50)"/>
+                    <defs>
+                        <linearGradient id="gauge-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" style="stop-color:var(--accent-pink);stop-opacity:1" />
+                            <stop offset="50%" style="stop-color:var(--accent-purple);stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:var(--accent-blue);stop-opacity:1" />
+                        </linearGradient>
+                    </defs>
+                </svg>
+                <div class="gauge-score">
+                    <div class="score-value" id="current-score">--</div>
+                    <div class="score-label" id="sentiment-flavor">等待分析</div>
+                </div>
+            </div>
+            
+            <!-- AI 思考泡泡組件 -->
+            <div id="ai-thought" class="ai-thought-bubble">
+                等待數據導入，準備點火分析儀...
+            </div>
+        </div>
+        
+        <!-- 系統監控日誌 -->
+        <div class="log-header">
+            <span><i class="fas fa-terminal"></i> 系統監控日誌</span>
+            <div style="display: flex; gap: 8px;">
+                <button id="toggle-sort" class="clear-btn" style="background: transparent; border: none; margin-right: 5px; font-size: 10px;" title="切換排序">
+                    <span id="sort-text">新>舊</span>
+                </button>
+                <button id="clear-logs" class="clear-btn">清除</button>
+            </div>
+        </div>
+        <div class="log-content" id="system-logs" style="overflow-y: visible;"></div>
+    </div>
+</section>

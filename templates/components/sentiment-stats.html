@@ -1,0 +1,18 @@
+<!-- 
+  分析統計組件 (Analysis Stats Component)
+  顯示總分析數量、成功次數、失敗次數
+-->
+<div class="analysis-stats" id="analysis-stats-container" style="display: flex; gap: 6px;">
+    <span class="stat-item" title="總分析數量" data-stat="total">
+        <i class="fas fa-list-ol"></i> 
+        <span id="stat-total">0</span>
+    </span>
+    <span class="stat-item success" title="分析成功" data-stat="success">
+        <i class="fas fa-check-circle"></i> 
+        <span id="stat-success">0</span>
+    </span>
+    <span class="stat-item failure" title="分析失敗" data-stat="failure">
+        <i class="fas fa-exclamation-triangle"></i> 
+        <span id="stat-failure">0</span>
+    </span>
+</div>

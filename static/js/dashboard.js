@@ -152,6 +152,73 @@ document.addEventListener('DOMContentLoaded', () => {
     const CIRCUMFERENCE = 282.7;
     let allLogs = []; // 🆕 全量日誌儲存
     let sortDesc = true; // true = 新-舊 (新到上), false = 舊-新 (舊到上)
+    const reconSourceMap = {
+        ptt: ['ptt', 'ptt stock'],
+        anue: ['anue', '鉅亨', '鉅亨網', '鉅亨網 anue'],
+        yahoo: ['yahoo', 'yahoo 股市'],
+        udn: ['udn', '經濟日報', '經濟日報 udn'],
+        moneydj: ['moneydj'],
+        ctee: ['ctee', '工商'],
+        tianxia: ['天下', 'tianxia'],
+        caixin: ['財訊', 'caixin'],
+        cmoney: ['cmoney'],
+        ettoday: ['東森', 'ettoday'],
+        tvbs: ['tvbs'],
+        cna: ['中央社', 'cna']
+    };
+    const completedReconSources = new Set();
+
+    function normalizeSourceName(source) {
+        return (source || '').toString().trim().toLowerCase();
+    }
+
+    function findReconSourceKey(source) {
+        const normalized = normalizeSourceName(source);
+        if (!normalized) return null;
+
+        for (const [key, aliases] of Object.entries(reconSourceMap)) {
+            if (aliases.some(alias => normalized.includes(alias))) {
+                return key;
+            }
+        }
+        return null;
+    }
+
+    function updateReconCompleteCount() {
+        const reconCompleteCount = document.getElementById('recon-complete-count');
+        if (reconCompleteCount) {
+            reconCompleteCount.innerText = String(completedReconSources.size);
+        }
+    }
+
+    function markReconSourceComplete(source) {
+        const sourceKey = findReconSourceKey(source);
+        if (!sourceKey || completedReconSources.has(sourceKey)) return;
+
+        completedReconSources.add(sourceKey);
+        const sourceEl = document.getElementById(`src-${sourceKey}`);
+        if (sourceEl) {
+            const statusEl = sourceEl.querySelector('.status');
+            if (statusEl) statusEl.innerText = '✓';
+            sourceEl.classList.add('success');
+            sourceEl.style.color = 'var(--accent-blue)';
+        }
+        updateReconCompleteCount();
+    }
+
+    function resetReconSourceStatus() {
+        completedReconSources.clear();
+        updateReconCompleteCount();
+
+        Object.keys(reconSourceMap).forEach((sourceKey) => {
+            const sourceEl = document.getElementById(`src-${sourceKey}`);
+            if (!sourceEl) return;
+            const statusEl = sourceEl.querySelector('.status');
+            if (statusEl) statusEl.innerText = '○';
+            sourceEl.classList.remove('success');
+            sourceEl.style.color = '';
+        });
+    }
 
     // 渲染日誌列表
     function renderLogs() {
@@ -291,7 +358,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- 資產配置與手冊邏輯 ---
-    let currentTargetPositionPercent = 0.5; // 哨兵建議 (預設 50%)
+    let currentTargetPositionPercent = null; // 尚未執行偵察前，不顯示預設建議
     
     const btnManual = document.getElementById('btn-manual');
     const manualModal = document.getElementById('manual-modal');
@@ -307,6 +374,50 @@ document.addEventListener('DOMContentLoaded', () => {
     const suggestCashValueEl = document.getElementById('suggest-cash-value');
     const suggestActionEl = document.getElementById('calc-suggest-action');
     const providerSelect = document.getElementById('provider-select'); // 🆕 AI 引擎選擇
+    const AUTO_START_RECON_KEY = 'dualbear_auto_start_recon';
+
+    function resetRecommendationDisplay() {
+        if (targetStockValueEl) targetStockValueEl.innerText = '--';
+        if (suggestCashValueEl) suggestCashValueEl.innerText = '--';
+        if (suggestActionEl) {
+            suggestActionEl.innerText = '--';
+            suggestActionEl.style.color = 'var(--text-dim)';
+        }
+    }
+
+    function initializeLiveDataDefaults() {
+        if (newsCount) newsCount.innerText = '- 則偵察';
+        resetReconSourceStatus();
+
+        if (typeof SentimentGauge !== 'undefined') {
+            SentimentGauge.reset();
+        } else {
+            scoreValue.innerText = '--';
+            scoreLabel.innerText = '等待分析';
+            scoreLabel.style.color = 'var(--text-dim)';
+            gaugeProgress.style.strokeDashoffset = CIRCUMFERENCE;
+        }
+
+        if (typeof SentimentStats !== 'undefined') {
+            SentimentStats.reset();
+        } else {
+            if (statTotal) statTotal.innerText = '-';
+            if (statSuccess) statSuccess.innerText = '-';
+            if (statFailure) statFailure.innerText = '-';
+        }
+
+        if (decisionAction) decisionAction.innerText = '--';
+        if (targetPosition) targetPosition.innerText = '--';
+        if (decisionNotes) decisionNotes.innerText = '系統持續監控市場脈動中...';
+
+        updateQuantUI({
+            margin_maintenance_ratio: null,
+            retail_long_short_ratio: null,
+            vixtwn: null
+        });
+
+        resetRecommendationDisplay();
+    }
 
     // 🆕 監聽 AI 引擎變更並儲存 (委托給 ProviderSelector 模組)
     if (typeof ProviderSelector !== 'undefined') {
@@ -482,9 +593,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (labelCurrentBeta) {
-            labelCurrentBeta.innerText = currentBeta.toFixed(2);
+            labelCurrentBeta.innerText = totalAsset > 0 ? currentBeta.toFixed(2) : '--';
             // 根據曝險程度改變顏色 (Beta>1 表示有槓桿曝險)
             labelCurrentBeta.style.color = currentBeta > 1.1 ? 'var(--accent-pink)' : (currentBeta > 1 ? '#f59e0b' : '#fff');
+        }
+
+        if (currentTargetPositionPercent === null || Number.isNaN(currentTargetPositionPercent)) {
+            resetRecommendationDisplay();
+            saveSettings(); // 同步儲存
+            return;
         }
 
         if (Math.abs(diff) < 1000) {
@@ -507,10 +624,17 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    initializeLiveDataDefaults();
+
     // 初始化讀取
     loadSettings().then(() => {
         console.log('[設定] 初始化完成');
         loadTargets(); // 🆕 同時載入標的清單
+
+        if (sessionStorage.getItem(AUTO_START_RECON_KEY) === '1') {
+            sessionStorage.removeItem(AUTO_START_RECON_KEY);
+            startRecon();
+        }
     });
 
     // 📡 WebSocket 連線 (儀表板大腦通訊)
@@ -527,6 +651,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (data.type === 'intelligence') {
             addNewsItem(data.content);
             const src = data.content.source || '未知';
+            markReconSourceComplete(src);
             addLog(`[${src}] 蒐集情報: ${data.content.title}`, 'scout');
         } else if (data.type === 'quant_data') {
             updateQuantUI(data);
@@ -708,7 +833,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // 💡 執行與停止任務
     btnRun.onclick = async () => {
         if (!isRunning) {
-            startRecon();
+            sessionStorage.setItem(AUTO_START_RECON_KEY, '1');
+            window.location.reload();
         } else {
             stopRecon();
         }
@@ -1039,7 +1165,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
             
             // 清空當前畫面
-            newsFeed.innerHTML = '';
+            newsFeed.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-search"></i>
+                    <p>等待偵察數據導入...</p>
+                </div>
+            `;
             updateGauge(0);
             
             // 顯示報告時間戳
@@ -1059,7 +1190,10 @@ document.addEventListener('DOMContentLoaded', () => {
             // 渲染歷史智能
             if (data.intelligence) {
                 // 由後往前加，保持最新在上的視覺感
-                data.intelligence.forEach(item => addNewsItem(item));
+                data.intelligence.forEach(item => {
+                    addNewsItem(item);
+                    markReconSourceComplete(item.source);
+                });
             }
             
             // 渲染歷史決策
@@ -1069,6 +1203,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 decisionAction.innerText = data.decision.action;
                 targetPosition.innerText = data.decision.target_position;
                 decisionNotes.innerText = data.decision.recon_notes;
+                const historyPositionMatch = (data.decision.target_position || '').match(/(\d+)%/);
+                currentTargetPositionPercent = historyPositionMatch ? parseInt(historyPositionMatch[1], 10) / 100 : null;
+                updateAssetCalculations();
                 // 使用 AIThoughtBubble 模組
                 if (typeof AIThoughtBubble !== 'undefined') {
                     AIThoughtBubble.setMessage(`讀取歷史檔案 [${date}] 完成。`);
@@ -1725,10 +1862,6 @@ const lexiconCategory = document.getElementById('lexicon-category');
 const lexiconWords = document.getElementById('lexicon-words');
 const lexiconCount = document.getElementById('lexicon-count');
 const btnSaveLexicon = document.getElementById('btn-save-lexicon');
-const btnReloadLexicon = document.getElementById('btn-reload-lexicon');
-const lexiconQuickAdd = document.getElementById('lexicon-quick-add');
-const btnAddPositive = document.getElementById('btn-add-positive');
-const btnAddNegative = document.getElementById('btn-add-negative');
 
 // 綁定詞庫回調到日誌系統
 if (typeof LexiconEditor !== 'undefined') {
@@ -1808,88 +1941,6 @@ if (lexiconCategory) {
 }
 
 // 儲存詞庫 (由 LexiconEditor 自動處理，回調已在上方綁定)
-
-// 重新載入詞庫
-if (btnReloadLexicon) {
-    btnReloadLexicon.onclick = () => {
-        // 視覺回饋
-        const originalText = btnReloadLexicon.innerHTML;
-        btnReloadLexicon.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 載入中...';
-        btnReloadLexicon.disabled = true;
-        
-        loadLexiconCategory();
-        
-        setTimeout(() => {
-            btnReloadLexicon.innerHTML = '<i class="fas fa-check"></i> 已載入!';
-            setTimeout(() => {
-                btnReloadLexicon.innerHTML = originalText;
-                btnReloadLexicon.disabled = false;
-            }, 800);
-        }, 300);
-    };
-}
-
-// 快速添加詞彙
-if (btnAddPositive) {
-    btnAddPositive.onclick = () => {
-        // 視覺回饋
-        const originalText = btnAddPositive.innerHTML;
-        btnAddPositive.innerHTML = '<i class="fas fa-check"></i> 已添加!';
-        btnAddPositive.style.background = 'rgba(16,185,129,0.5)';
-        
-        quickAddWord('positive');
-        
-        setTimeout(() => {
-            btnAddPositive.innerHTML = originalText;
-            btnAddPositive.style.background = '';
-        }, 1000);
-    };
-}
-
-if (btnAddNegative) {
-    btnAddNegative.onclick = () => {
-        // 視覺回饋
-        const originalText = btnAddNegative.innerHTML;
-        btnAddNegative.innerHTML = '<i class="fas fa-check"></i> 已添加!';
-        btnAddNegative.style.background = 'rgba(239,68,68,0.5)';
-        
-        quickAddWord('negative');
-        
-        setTimeout(() => {
-            btnAddNegative.innerHTML = originalText;
-            btnAddNegative.style.background = '';
-        }, 1000);
-    };
-}
-
-// Enter 鍵快速添加
-if (lexiconQuickAdd) {
-    lexiconQuickAdd.onkeypress = (e) => {
-        if (e.key === 'Enter') {
-            quickAddWord('neutral');
-        }
-    };
-}
-
-function quickAddWord(type) {
-    if (!lexiconQuickAdd || !lexiconWords || !lexiconCount) return;
-    
-    const word = lexiconQuickAdd.value.trim();
-    if (!word) return;
-    
-    let current = lexiconWords.value;
-    const prefix = type === 'positive' ? '🔴' : (type === 'negative' ? '🔵' : '');
-    const line = prefix ? `${prefix} ${word}` : word;
-    
-    if (current && !current.endsWith('\n')) {
-        current += '\n';
-    }
-    lexiconWords.value = current + line;
-    lexiconCount.textContent = `${lexiconWords.value.split('\n').filter(w => w.trim()).length} 個詞`;
-    
-    lexiconQuickAdd.value = '';
-    lexiconQuickAdd.focus();
-}
 
 // 👁️ 標的管理邏輯 (Targets Management)
 // 🛡️ 註：targetStockDataList 現由外部 static/js/stocks_lookup.js 提供 (全量庫)

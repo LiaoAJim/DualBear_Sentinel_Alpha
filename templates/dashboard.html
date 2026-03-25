@@ -66,7 +66,7 @@
 
         <!-- 第二欄：情緒核心 -->
         {% include 'sentiment-panel.html' %}
-
+ 
         <!-- 第三欄：哨兵決策 -->
         <section class="panel" id="decision-panel" style="display: flex; flex-direction: column; overflow: hidden;">
             <div class="panel-header">
@@ -75,16 +75,16 @@
             <div style="flex: 1; overflow-y: auto;">
             <div class="decision-card">
                 <div class="decision-label">建議操作</div>
-                <div id="decision-action" class="decision-action">觀望</div>
+                <div id="decision-action" class="decision-action">--</div>
                 
                 <div class="decision-label">建議倉位</div>
-                <div id="target-position" class="decision-value">50%</div>
+                <div id="target-position" class="decision-value">--</div>
                 
                 <!-- 🔍 核心量化指標：直接佈局，不再有多餘容器感 -->
                 <div class="quant-stats-container">
                     <div class="quant-item">
                         <span class="quant-label">融資</span>
-                        <span id="quant-margin" class="quant-value">-- %</span>
+                        <span id="quant-margin" class="quant-value">--</span>
                     </div>
                     <div class="quant-item">
                         <span class="quant-label">散戶</span>
@@ -173,18 +173,18 @@
                             <span style="font-size: 10px; color: var(--text-dim);">曝險 </span>
                             <span id="label-exposure-value" style="font-size: 12px; font-weight: 700; color: #f59e0b; background: rgba(245,158,11,0.15); padding: 2px 6px; border-radius: 4px;">--</span>
                             <span style="font-size: 10px; color: var(--text-dim);">Beta </span>
-                            <span id="label-current-beta" style="font-size: 12px; font-weight: 700; color: #fff; background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px;">0.50</span>
+                            <span id="label-current-beta" style="font-size: 12px; font-weight: 700; color: #fff; background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px;">--</span>
                         </div>
                         </div>
                     </div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px;">
                         <div class="result-item">
                             <span class="label">建議持股</span>
-                            <span id="target-stock-value" class="value" style="font-size: 14px; color: #fff;">$ 750,000</span>
+                            <span id="target-stock-value" class="value" style="font-size: 14px; color: #fff;">--</span>
                         </div>
                         <div class="result-item">
                             <span class="label">建議保現</span>
-                            <span id="suggest-cash-value" class="value" style="font-size: 14px; color: #fff;">$ 250,000</span>
+                            <span id="suggest-cash-value" class="value" style="font-size: 14px; color: #fff;">--</span>
                         </div>
                     </div>
                     <div style="padding: 10px; background: rgba(0, 210, 255, 0.08); border-radius: 8px; text-align: center;">
@@ -350,65 +350,12 @@
         </div>
     </div>
 
-    <div id="history-drawer" class="history-drawer">
-        <div class="history-header">
-            <h3 style="margin:0; font-size:18px; color:#fff;"><i class="fas fa-history"></i> 歷史戰略檔案</h3>
-            <button id="close-history" style="background:transparent; border:none; color:#fff; cursor:pointer;"><i class="fas fa-times"></i></button>
-        </div>
-        <div id="history-list" class="history-list">
-            <!-- 載入日期清單 -->
-            <div class="loading-spinner">載入中...</div>
-        </div>
-    </div>
+    <!-- 📜 歷史戰略檔案 -->
+    {% include 'history-panel.html' %}
 
-    <div id="manual-modal" class="modal-overlay">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>📖 雙熊哨兵：戰略手冊與精算邏輯</h3>
-                <button id="close-manual" class="close-btn">&times;</button>
-            </div>
-            <div class="modal-body">
-                <section class="manual-section">
-                    <h4>📡 情報偵察網與真理來源</h4>
-                    <table class="manual-table">
-                        <tr><th>來源</th><th>偵察屬性</th><th>戰略價值</th></tr>
-                        <tr><td>TWSE 官網</td><td>官方數據</td><td>VIX 指數與籌碼真理</td></tr>
-                        <tr><td>WantGoo</td><td>量化指標</td><td>融資維持率與散戶比</td></tr>
-                        <tr><td>經濟日報</td><td>權威媒體</td><td>產業與法人風向</td></tr>
-                        <tr><td>PTT/Yahoo</td><td>大眾輿情</td><td>散戶過熱或恐慌指標</td></tr>
-                    </table>
-                </section>
-
-                <section class="manual-section">
-                    <h4>🧠 核心決策精算公式 (Jade Engine)</h4>
-                    <div class="formula-box">
-                        <p><strong>最終決策 = AI 語意分 (60%) + 量化指標反向因子 (40%)</strong></p>
-                    </div>
-                    <div class="logic-grid">
-                        <div class="logic-item">
-                            <h5>📉 融資維持率修正</h5>
-                            <p>< 140%：目標倉位 +20% (逆勢加碼)</p>
-                        </div>
-                        <div class="logic-item">
-                            <h5>📈 散戶多空比修正</h5>
-                            <p>> +30%：目標倉位 -15% (撤退避險)</p>
-                        </div>
-                        <div class="logic-item">
-                            <h5>😨 VIX 恐慌指數</h5>
-                            <p>> 25：目標倉位 +10%</p>
-                        </div>
-                    </div>
-                </section>
-                
-                <section class="manual-section">
-                    <h4>⚙️ 資產配置計算規則</h4>
-                    <p>依照 AI 建議之「目標倉位」，系統會自動對比當前「總資產」與「持股市值」，產出買賣差額建議。</p>
-                </section>
-            </div>
-        </div>
-    </div>
-    
-    <!-- 📖 詞庫編輯器模態窗口 -->
+    <!-- 📖 系統手冊 -->
+    {% include 'manual-panel.html' %}
+    <!-- 📖 詞庫編輯器 -->
     {% include 'components/lexicon-editor.html' %}
     
     <!-- 👁️ 標的清單編輯器 -->
