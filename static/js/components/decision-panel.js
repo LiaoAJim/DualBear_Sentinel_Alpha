@@ -121,6 +121,7 @@ const DecisionPanel = (function() {
 
     function formatMetric(value, suffix = '') {
         if (value === '失敗') return '失敗';
+        if (value === 'XQ未開') return 'XQ未開';
         if (value === null || value === undefined || value === '') return '--';
         return `${value}${suffix}`;
     }
@@ -130,6 +131,11 @@ const DecisionPanel = (function() {
         if (value === '失敗') {
             el.textContent = '失敗';
             el.style.color = 'var(--danger)';
+            return;
+        }
+        if (value === 'XQ未開') {
+            el.textContent = 'XQ未開';
+            el.style.color = '#f59e0b';  // 橘黃色警示，區別於錯誤紅
             return;
         }
         if (value === null || value === undefined || value === '') {

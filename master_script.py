@@ -75,7 +75,8 @@ def build_display_quant_data(quant_data=None):
         return None
 
     return {
-        "margin_maintenance_ratio": normalize("margin_maintenance_ratio"),
+        # 優先使用 quant_scout 計算好的顯示值（含 'XQ未開' 狀態標籤）
+        "margin_maintenance_ratio": quant_data.get("margin_display") if quant_data.get("margin_display") is not None else normalize("margin_maintenance_ratio"),
         "retail_long_short_ratio": normalize("retail_long_short_ratio"),
         "vixtwn": normalize("vixtwn"),
         "vixus": normalize("vixus")

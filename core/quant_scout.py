@@ -86,11 +86,21 @@ class QuantSentimentScout:
         indicators['margin_maintenance_ratio'], indicators['_sources']['margin_maintenance_ratio'] = self._fetch_with_fallback(
             'margin_maintenance_ratio',
             [
-                ('xq_margin_bridge', self._get_xq_margin_bridge),
+                # 唯一來源：透過 win32com 讀取 Excel 中 XQ DDE 即時值
+                # 若 XQ 未開啟或 DDE 刷新失敗，直接顯示 XQ未開，不使用舊快照
+                ('xq_excel_live', self._get_xq_excel_live),
             ]
         )
         indicators['_status']['margin_maintenance_ratio'] = 'success' if indicators['margin_maintenance_ratio'] is not None else 'failed'
         indicators['margin_maintenance_ratio_market'] = self._build_margin_market_breakdown(indicators)
+
+        # 顯示用欄位：成功時用數值，失敗時明確告知 XQ 未開啟
+        # （保留 margin_maintenance_ratio 為 None 給 sentinel 決策邏輯用）
+        indicators['margin_display'] = (
+            indicators['margin_maintenance_ratio']
+            if indicators['margin_maintenance_ratio'] is not None
+            else 'XQ未開'
+        )
 
         indicators['retail_long_short_ratio'], indicators['_sources']['retail_long_short_ratio'] = self._fetch_with_fallback(
             'retail_long_short_ratio',
@@ -107,53 +117,131 @@ class QuantSentimentScout:
         print("[OK] 全量化指標採集完成。")
         return indicators
 
-    def _get_xq_margin_bridge(self):
+    def _get_xq_excel_live(self):
         """
-        XQ 融維橋接層：
-        目前程式無法直接讀取 `=XQFAP|Quote!` 公式，
-        因此改走本機快照 JSON 橋接。
-        目前依使用者規則，Step 3 只看上市融維。
-        注：檔案不存在時返回 None，不自動建立預設值。
+        XQ Excel DDE 即時橋接層（方案 B - 全自動版）：
+        - 若 Excel 已開著且有目標活頁簿 → 直接讀取，不干擾使用者工作
+        - 若 Excel 未開著 → 在背景靜默啟動 Excel、開啟橋接檔、
+          等待 XQ DDE 刷新後讀取 B2，完成後靜默關閉
+        前提：pywin32 已安裝、XQ 軟體正在運行。
         """
-        snapshot_path = os.getenv(
-            "XQ_MARGIN_SNAPSHOT_PATH",
-            os.path.join("logs", "xq_margin_snapshot.json")
-        )
-        
-        # 檔案不存在，返回 None（不建立預設值）
-        if not os.path.exists(snapshot_path):
+        import os
+        import time
+
+        excel_filename = "xq_margin_bridge_template.xlsx"
+        excel_filepath = os.path.abspath(os.path.join("logs", excel_filename))
+
+        # 嘗試 import pywin32，若未安裝則靜默跳過
+        try:
+            import win32com.client
+        except ImportError:
             self.last_errors['margin_maintenance_ratio'] = (
-                "XQ 快照檔案不存在，無法取得融維數值。"
+                'pywin32 未安裝，跳過 XQ Excel 即時讀取。'
+                '可執行 pip install pywin32 啟用此功能。'
             )
             return None
 
+        # 確認橋接檔存在
+        if not os.path.exists(excel_filepath):
+            self.last_errors['margin_maintenance_ratio'] = (
+                f'找不到 Excel 橋接檔: {excel_filepath}，'
+                '請確認 logs/xq_margin_bridge_template.xlsx 存在。'
+            )
+            return None
+
+        excel = None
+        wb = None
+        opened_by_us = False  # 記錄是否由本程式開啟，決定事後是否關閉
+
         try:
-            with open(snapshot_path, "r", encoding="utf-8") as f:
-                payload = json.load(f)
+            # ── 步驟 1：嘗試接上已開啟的 Excel 實例 ──────────────────
+            excel_already_open = False
+            try:
+                excel = win32com.client.GetActiveObject("Excel.Application")
+                excel_already_open = True
+            except Exception:
+                pass  # Excel 未開啟，之後建立新實例
 
-            listed = self._extract_first_float(str(payload.get("listed", "")))
-            market = self._extract_first_float(str(payload.get("market", "")))
+            if excel_already_open:
+                # 在現有 Excel 中尋找目標活頁簿
+                target_wb = None
+                for i in range(1, excel.Workbooks.Count + 1):
+                    wb_item = excel.Workbooks.Item(i)
+                    if excel_filename.lower() in wb_item.Name.lower():
+                        target_wb = wb_item
+                        break
 
-            if self._looks_like_margin_ratio(listed):
+                if target_wb is not None:
+                    # 目標活頁簿已開著，直接使用
+                    wb = target_wb
+                    opened_by_us = False
+                    print("   ∟ [XQ Excel Live] 接上現有 Excel（檔案已開啟）")
+                else:
+                    # Excel 開著但目標活頁簿未開，在現有 Excel 裡開啟
+                    wb = excel.Workbooks.Open(excel_filepath, UpdateLinks=True)
+                    opened_by_us = True
+                    print("   ∟ [XQ Excel Live] 在現有 Excel 中開啟橋接檔")
+            else:
+                # ── Excel 完全未開啟，建立靜默背景實例 ──────────────
+                excel = win32com.client.Dispatch("Excel.Application")
+                excel.Visible = False        # 背景靜默，不顯示 Excel 視窗
+                excel.DisplayAlerts = False  # 關閉一切彈窗警示（如 DDE 連結警告）
+                wb = excel.Workbooks.Open(excel_filepath, UpdateLinks=True)
+                opened_by_us = True
+                print("   ∟ [XQ Excel Live] 背景靜默啟動 Excel 並開啟橋接檔")
+
+            # ── 步驟 2：等待 XQ DDE 刷新（逐秒重試，最多 5 次）────────
+            ws = wb.Sheets(1)
+            value = None
+            max_retries = 5
+            dde_wait_sec = 1.0
+
+            for attempt in range(1, max_retries + 1):
+                excel.Calculate()  # 強制觸發公式重算，催促 DDE 更新
+                raw_value = ws.Range("B2").Value
+                print(f"   ∟ [XQ Excel Live] DDE 刷新第 {attempt}/{max_retries} 次，B2 = {raw_value}")
+
+                candidate = self._extract_first_float(str(raw_value)) if raw_value is not None else None
+                if self._looks_like_margin_ratio(candidate):
+                    value = candidate
+                    break
+
+                if attempt < max_retries:
+                    time.sleep(dde_wait_sec)
+
+            # ── 步驟 3：回傳結果 ─────────────────────────────────────
+            if self._looks_like_margin_ratio(value):
+                print(f"   ∟ [XQ Excel Live] 融資維持率 (B2): {value}%")
                 self._record_margin_market_values(
-                    'xq_margin_bridge',
-                    market_values={"listed": listed},
-                    aggregate=listed
+                    'xq_excel_live',
+                    market_values={"listed": value},
+                    aggregate=value
                 )
-                print(f"   ∟ [XQ Bridge] 上市融維: {listed}%")
-                return listed
-
-            if self._looks_like_margin_ratio(market):
-                self._record_margin_market_values('xq_margin_bridge', aggregate=market)
-                print(f"   ∟ [XQ Bridge] 大盤融維: {market}%")
-                return market
+                return value
 
             self.last_errors['margin_maintenance_ratio'] = (
-                "XQ bridge 快照已讀取，但 listed / market 都沒有可用融維數值。"
+                f'XQ DDE 在 {max_retries} 次刷新後 B2 仍無合理融資維持率，'
+                '請確認 XQ 軟體已連線且 DDE 公式正確。'
             )
+
         except Exception as e:
-            self.last_errors['margin_maintenance_ratio'] = f"XQ bridge 讀取失敗: {str(e)}"
+            self.last_errors['margin_maintenance_ratio'] = f'XQ Excel DDE 讀取失敗: {str(e)}'
+            print(f"[FAIL] XQ Excel DDE 讀取失敗: {e}")
+
+        finally:
+            # ── 清理：若活頁簿是由本程式開啟的，讀完後靜默關閉 ──────
+            try:
+                if opened_by_us and wb is not None:
+                    wb.Close(SaveChanges=False)
+                # 若 Excel 是由本程式啟動且現在沒有其他活頁簿，整個退出
+                if opened_by_us and excel is not None and excel.Workbooks.Count == 0:
+                    excel.Quit()
+            except Exception:
+                pass  # 清理失敗時靜默處理，不影響主流程
+
         return None
+
+
 
     def _fetch_with_fallback(self, key, fetchers):
         attempts = []

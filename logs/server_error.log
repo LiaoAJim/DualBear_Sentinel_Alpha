@@ -423,14 +423,37 @@
 [32mINFO[0m:     connection closed
 [32mINFO[0m:     127.0.0.1:61962 - "WebSocket /ws" [accepted]
 [32mINFO[0m:     connection open
-tdown complete.
-[32mINFO[0m:     Started server process [[36m15748[0m]
+[32mINFO[0m:     connection closed
+[32mINFO[0m:     127.0.0.1:62685 - "WebSocket /ws" [accepted]
+[32mINFO[0m:     connection open
+[32mINFO[0m:     connection closed
+[32mINFO[0m:     127.0.0.1:62692 - "WebSocket /ws" [accepted]
+[32mINFO[0m:     connection open
+[32mINFO[0m:     connection closed
+[32mINFO[0m:     127.0.0.1:64835 - "WebSocket /ws" [accepted]
+[32mINFO[0m:     connection open
+[32mINFO[0m:     connection closed
+[32mINFO[0m:     127.0.0.1:65355 - "WebSocket /ws" [accepted]
+[32mINFO[0m:     connection open
+[32mINFO[0m:     connection closed
+[32mINFO[0m:     127.0.0.1:65389 - "WebSocket /ws" [accepted]
+[32mINFO[0m:     connection open
+ ('0.0.0.0', 8001): 一次只能用一個通訊端位址 (通訊協定/網路位址/連接埠)。
+[32mINFO[0m:     Waiting for application shutdown.
+[32mINFO[0m:     Application shutdown complete.
+[32mINFO[0m:     Started server process [[36m19296[0m]
 [32mINFO[0m:     Waiting for application startup.
 [32mINFO[0m:     Application startup complete.
 [31mERROR[0m:    [Errno 10048] error while attempting to bind on address ('0.0.0.0', 8001): 一次只能用一個通訊端位址 (通訊協定/網路位址/連接埠)。
 [32mINFO[0m:     Waiting for application shutdown.
 [32mINFO[0m:     Application shutdown complete.
-[32mINFO[0m:     Started server process [[36m21132[0m]
+[32mINFO[0m:     Started server process [[36m21780[0m]
+[32mINFO[0m:     Waiting for application startup.
+[32mINFO[0m:     Application startup complete.
+[31mERROR[0m:    [Errno 10048] error while attempting to bind on address ('0.0.0.0', 8001): 一次只能用一個通訊端位址 (通訊協定/網路位址/連接埠)。
+[32mINFO[0m:     Waiting for application shutdown.
+[32mINFO[0m:     Application shutdown complete.
+[32mINFO[0m:     Started server process [[36m11856[0m]
 [32mINFO[0m:     Waiting for application startup.
 [32mINFO[0m:     Application startup complete.
 [31mERROR[0m:    [Errno 10048] error while attempting to bind on address ('0.0.0.0', 8001): 一次只能用一個通訊端位址 (通訊協定/網路位址/連接埠)。

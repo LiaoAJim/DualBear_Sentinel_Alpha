@@ -1,5 +1,6 @@
 requests
 beautifulsoup4
+pywin32
 yfinance
 openai
 pandas
