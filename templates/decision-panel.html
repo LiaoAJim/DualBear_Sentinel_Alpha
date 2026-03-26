@@ -32,6 +32,21 @@
             padding-top: 10px;
             border-top: 1px solid rgba(157, 80, 187, 0.15);
         ">
+            
+            <section class="manual-section">
+                <h4>📡 情報偵察網與真理來源</h4>
+                <table class="manual-table">
+                    <tr><th>來源</th><th>偵察屬性</th><th>戰略價值</th></tr>
+                    <tr><td>台期所 / TWSE</td><td>官方數據指標</td><td>台灣 VIX (恐慌指數) 與 散戶多空比 (MXF)</td></tr>
+                    <tr><td>XQ DDE (Excel)</td><td>即時快照</td><td>大盤融資維持率 (即時 DDE 刷新)</td></tr>
+                    <tr><td>CBOE / Yahoo</td><td>國際波動率</td><td>美國 VIX 全局風險參考</td></tr>
+                    <tr><td>PTT / 鉅亨 / 經濟</td><td>新聞輿情</td><td>提供 AI 各類情緒判讀素材</td></tr>
+                </table>
+                <p style="margin-top: 10px; font-size: 12px; line-height: 1.7; color: #d8b4fe;">
+                    目前 Step 3 核心量化指標已脫離第三方網站，直連台期所官方 API 與 XQ 即時數值，確保決策真理的高保真度。
+                </p>
+            </section>
+            
             <section class="manual-section">
                 <h4>📈 戰略建議與倉位邏輯</h4>
                 <p>哨兵系統採用「逆向思維」策略模型：當新聞情緒過熱時減碼，極度恐慌時強勢介入。</p>
@@ -47,20 +62,7 @@
                     * 最終顯示之「建議倉位」會依據 <b>融資維持率、微台散戶比、VIX 恐慌值</b> 進行二次精算修正。
                 </p>
             </section>
-            <section class="manual-section">
-                <h4>📡 情報偵察網與真理來源</h4>
-                <table class="manual-table">
-                    <tr><th>來源</th><th>偵察屬性</th><th>戰略價值</th></tr>
-                    <tr><td>台期所 / TWSE</td><td>官方數據指標</td><td>台灣 VIX (恐慌指數) 與 散戶多空比 (MXF)</td></tr>
-                    <tr><td>XQ DDE (Excel)</td><td>即時快照</td><td>大盤融資維持率 (即時 DDE 刷新)</td></tr>
-                    <tr><td>CBOE / Yahoo</td><td>國際波動率</td><td>美國 VIX 全局風險參考</td></tr>
-                    <tr><td>PTT / 鉅亨 / 經濟</td><td>新聞輿情</td><td>提供 AI 各類情緒判讀素材</td></tr>
-                </table>
-                <p style="margin-top: 10px; font-size: 12px; line-height: 1.7; color: #d8b4fe;">
-                    目前 Step 3 核心量化指標已脫離第三方網站，直連台期所官方 API 與 XQ 即時數值，確保決策真理的高保真度。
-                </p>
-            </section>
-
+                    
             <section class="manual-section">
                 <h4>🧠 核心決策精算公式 (Jade Engine)</h4>
                 <div class="formula-box">
