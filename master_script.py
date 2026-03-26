@@ -90,6 +90,7 @@ def build_report_guidance(decision, quant_data=None, mode="report"):
     failed_sources = decision.get("failed_sources") or []
     vixtwn = quant_data.get("vixtwn")
     vixus = quant_data.get("vixus")
+    calculation_breakdown = decision.get("calculation_breakdown", "")
 
     score_neutral = sentiment_score is None or abs(sentiment_score) < 0.2
     high_vix = any(
@@ -99,7 +100,8 @@ def build_report_guidance(decision, quant_data=None, mode="report"):
 
     if failed_sources:
         text = (
-            "本次資料存在缺口，較適合用於風險提醒，不適合單獨作為選股或槓桿依據。"
+            "本次資料存在缺口，較適合用於風險提醒，不適合單獨作為選股或槓桿依據。 "
+            "建議用途：降低風險、排除弱勢、觀察逆勢強股。"
         )
     elif action in {"持平", "持平 (已修正)"} or (score_neutral and high_vix):
         text = (
@@ -117,7 +119,13 @@ def build_report_guidance(decision, quant_data=None, mode="report"):
     if mode == "history":
         return text
     if mode == "line":
+        # 如果 text 已經包含「建議用途」，就不重複加了
+        if "建議用途" in text:
+            return text
         return text + " 建議用途：降低風險、排除弱勢、觀察逆勢強股。"
+    
+    if "建議用途" in text:
+        return text
     return (
         text + "\n"
         "建議用途：降低追高與重倉風險、排除明顯轉弱族群、觀察震盪中仍相對強勢的標的。"
@@ -147,14 +155,18 @@ def construct_report(decision, intelligence_count, quant_data=None):
         vixus_text = _format_report_metric(quant_data.get('vixus'))
         guidance_text = build_report_guidance(decision, quant_data, mode="line")
 
-        return (
+        calculation_breakdown = decision.get("calculation_breakdown", "")
+        calc_line = f"精算過程：{calculation_breakdown}\n" if calculation_breakdown else ""
+
+        report_text = (
             f"📊 DualBear 哨兵正式戰報\n\n"
             f"🕒 時間: {now}\n"
             f"📡 偵察情報數: {intelligence_count} 則\n"
             f"💡 最終情緒: {score_text} ({sentiment_label})\n\n"
             f"【決策摘要】\n"
             f"🛡️ 建議操作: {decision.get('action', 'N/A')}\n"
-            f"🎯 建議倉位: {decision.get('target_position', 'N/A')}\n\n"
+            f"🎯 建議倉位: {decision.get('target_position', 'N/A')}\n"
+            f"{calc_line}\n"
             f"【量化指標】\n"
             f"💳 融資維持率: {margin_text}\n"
             f"👥 散戶多空比: {retail_text}\n"
@@ -167,6 +179,12 @@ def construct_report(decision, intelligence_count, quant_data=None):
             f"{guidance_text}\n\n"
             f"DualBear Sentinel Alpha"
         )
+        
+        # 將 guidance 同步存入 decision 本體，方便 UI 顯示
+        decision["report_guidance"] = guidance_text
+        decision["report_text"] = report_text
+        
+        return report_text
     else:
         return (
             f"📊 DualBear 哨兵正式戰報\n\n"
@@ -524,6 +542,10 @@ def main():
             for profile, decision in decision_variants.items()
         }
         final_decision = decision_variants[selected_variant]
+        
+        # 確保 final_decision 包含精算過程與建議文字，讓 UI 能直接渲染
+        final_decision["report_guidance"] = build_report_guidance(final_decision, display_quant_data, mode="history")
+        
         db_notifier.notify("decision", final_decision)
         db_notifier.log(
             "🧾 三版決策已生成："

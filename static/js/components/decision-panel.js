@@ -20,6 +20,7 @@ const DecisionPanel = (function() {
     let reportGuidanceEl = null;
     let lineReportPreviewEl = null;
     let decisionLogEl = null;
+    let targetPositionBreakdownEl = null;
 
     const DEFAULTS = {
         action: '--',
@@ -65,6 +66,7 @@ const DecisionPanel = (function() {
         reportGuidanceEl = document.getElementById('report-guidance');
         lineReportPreviewEl = document.getElementById('line-report-preview');
         decisionLogEl = document.getElementById('decision-log');
+        targetPositionBreakdownEl = document.getElementById('target-position-breakdown');
 
         renderGuidance();
         renderLinePreview();
@@ -202,9 +204,11 @@ const DecisionPanel = (function() {
         const timestamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
         const count = getIntelligenceCount();
         const score = formatScore(currentSentimentScore);
-        const failedSources = currentDecision.failed_sources || [];
-        const failureBlock = failedSources.length > 0 ? `⚠️ 失敗來源: ${failedSources.join('、')}\n` : '';
+        const failed_sources = currentDecision.failed_sources || [];
+        const failureBlock = failed_sources.length > 0 ? `⚠️ 失敗來源: ${failed_sources.join('、')}\n` : '';
         const guidanceText = buildGuidanceText();
+        const breakdown = currentDecision.calculation_breakdown || '';
+        const breakdownLine = breakdown ? `精算過程: ${breakdown}\n` : '';
 
         lineReportPreviewEl.textContent =
             `📊 DualBear 哨兵正式戰報\n\n` +
@@ -213,7 +217,8 @@ const DecisionPanel = (function() {
             `💡 最終情緒: ${score.text} (${score.label})\n\n` +
             `【決策摘要】\n` +
             `🛡️ 建議操作: ${currentDecision.action || DEFAULTS.action}\n` +
-            `🎯 建議倉位: ${currentDecision.target_position || DEFAULTS.position}\n\n` +
+            `🎯 建議倉位: ${currentDecision.target_position || DEFAULTS.position}\n` +
+            `${breakdownLine}\n` +
             `【量化指標】\n` +
             `💳 融資維持率: ${formatMetric(currentQuant.margin_maintenance_ratio, ' %')}\n` +
             `👥 散戶多空比: ${formatMetric(currentQuant.retail_long_short_ratio)}\n` +
@@ -283,6 +288,10 @@ const DecisionPanel = (function() {
             } else {
                 targetPositionEl.style.color = '';
             }
+        }
+
+        if (targetPositionBreakdownEl && data.calculation_breakdown !== undefined) {
+            targetPositionBreakdownEl.innerText = data.calculation_breakdown || '';
         }
 
         if (decisionNotesEl && data.recon_notes !== undefined) {
@@ -408,7 +417,8 @@ const DecisionPanel = (function() {
             target_position: data.target_position,
             recon_notes: data.recon_notes,
             failed_sources: data.failed_sources || [],
-            report_guidance: data.report_guidance
+            report_guidance: data.report_guidance,
+            calculation_breakdown: data.calculation_breakdown
         });
 
         if (data.sentiment_score !== undefined) {
