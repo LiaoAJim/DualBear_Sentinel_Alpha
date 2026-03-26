@@ -126,7 +126,7 @@ class SentinelAlpha:
             # (B) 微台指散戶多空比
             retail = quant_data.get('retail_long_short_ratio')
             r_adj = 0
-            r_str = "散戶失敗"
+            r_str = "散戶(TMF)失敗"
             if isinstance(retail, (int, float)):
                 if retail > profile_config["retail_hot"]: 
                     r_adj = profile_config["retail_hot_adj"]
@@ -134,9 +134,9 @@ class SentinelAlpha:
                 elif retail < profile_config["retail_cold"]: 
                     r_adj = profile_config["retail_cold_adj"]
                     quant_notes.append(f"🚀 散戶空單群聚 ({retail})")
-                r_str = f"散戶 {retail:g}%"
+                r_str = f"散戶(TMF) {retail:g}%"
             elif retail == "失敗":
-                r_str = "散戶失敗"
+                r_str = "散戶(TMF)失敗"
                 
             adjustment += r_adj
             breakdown_parts.append(f"{r_str} ({format_adj(r_adj)})")

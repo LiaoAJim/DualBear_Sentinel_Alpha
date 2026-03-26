@@ -18,9 +18,14 @@ class QuantSentimentScout:
     """
     def __init__(self):
         self.headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-            'Referer': 'https://www.twse.com.tw/'
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+            'Accept-Language': 'zh-TW,zh;q=0.9,en-US;q=0.8,en;q=0.7',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1',
         }
+        self.session = requests.Session()
+        self.session.headers.update(self.headers)
         self.last_errors = {}
         self.last_attempts = {}
         self.last_margin_market = {}
@@ -356,6 +361,89 @@ class QuantSentimentScout:
             print(f"[FAIL] TWSE VIX 採集失敗: {e}")
         return None
 
+    def _get_taifex_retail_ls(self):
+        """
+        從台期所官方資料計算「微型臺指期貨 (TMF)」散戶多空比。
+
+        計算公式：
+          散戶多單 = 全市場總未平倉量 - 三大法人多單
+          散戶空單 = 全市場總未平倉量 - 三大法人空單
+          散戶淨部位 = 散戶多單 - 散戶空單
+          散戶多空比(%) = 散戶淨部位 / 全市場總未平倉量 × 100
+
+        資料來源：
+          1. 三大法人未平倉：https://www.taifex.com.tw/cht/3/futContractsDate (TMF)
+          2. 全市場總未平倉：https://www.taifex.com.tw/cht/3/futDailyMarketReport (TMF)
+        """
+        from datetime import datetime, timedelta
+
+        commodity_id = 'TMF'  # 微型臺指期貨
+
+        # 逐日回溯：今天 → 昨天 → 前天（應對假日與盤中尚未更新的情況）
+        today = datetime.now()
+        dates_to_try = [
+            today.strftime('%Y/%m/%d'),
+            (today - timedelta(days=1)).strftime('%Y/%m/%d'),
+            (today - timedelta(days=2)).strftime('%Y/%m/%d'),
+            (today - timedelta(days=3)).strftime('%Y/%m/%d'),
+        ]
+
+        for query_date in dates_to_try:
+            result = self._fetch_taifex_tmf_ls(query_date, commodity_id)
+            if result is not None:
+                return result
+
+        self.last_errors['retail_long_short_ratio'] = (
+            f'台期所 {commodity_id} 散戶多空比資料：'
+            f'連續 {len(dates_to_try)} 個交易日均無法完整解析（法人或市場總量缺失）'
+        )
+        return None
+
+    def _fetch_taifex_total_oi(self, query_date, commodity_id):
+        """
+        從「期貨每日交易行情」頁面獲取特定商品的全市場總未平倉量 (Total OI)。
+        微台 (TMF) 專用。
+        """
+        url = 'https://www.taifex.com.tw/cht/3/futDailyMarketReport'
+        try:
+            # 優先使用 GET 以模擬瀏覽器首選跳轉，若無效再試 POST
+            params = {
+                'queryDate': query_date,
+                'commodityId': commodity_id,
+                'MarketCode': '0',
+            }
+            res = self.session.post(url, data=params, timeout=10)
+            if res.status_code != 200:
+                print(f"   ∟ [FAIL] market_report http status: {res.status_code}")
+                return None
+            
+            soup = BeautifulSoup(res.text, 'html.parser')
+            
+            # 尋找包含「小計」的最後一個表格橫列
+            target_row = None
+            rows = soup.find_all('tr')
+            for row in reversed(rows):
+                text = row.get_text(" ", strip=True)
+                if '小計' in text or '合計' in text:
+                    target_row = row
+                    break
+            
+            if target_row:
+                cells = [td.get_text(" ", strip=True).replace(',', '') for td in target_row.find_all(['td', 'th'])]
+                # 未平倉契約量 (OI) 在微台指表格中通常是最後一個數字 (合計)
+                for val_str in reversed(cells):
+                    val = self._extract_first_float(val_str)
+                    if val is not None and val > 100:
+                        return val
+            
+            # 備援：若小計行解析失敗，嘗試尋找所有 TMF 資料列並加總
+            # (在 Daily Market Report 中通常只有 TMF 相關列)
+            print(f"   ∟ [WARN] TAIFEX {commodity_id} 小計行解析異常，嘗試備援方案")
+            return None
+        except Exception as e:
+            print(f"   ∟ [FAIL] market_report error: {e}")
+            return None
+
     def _get_wantgoo_margin(self):
         """從玩股網採集大盤融資維持率"""
         url = "https://www.wantgoo.com/stock/astock/margin"
@@ -394,78 +482,32 @@ class QuantSentimentScout:
         print("[WARN] 融資維持率未能解析，返回 None")
         return None
 
-    def _get_taifex_retail_ls(self):
+
+    def _fetch_taifex_tmf_ls(self, query_date, commodity_id):
         """
-        從台期所「三大法人期貨未平倉量」直接計算微台指（MXF）散戶多空比。
-
-        計算公式：
-          散戶多單 = 全市場多方口數 - 三大法人多方口數
-          散戶空單 = 全市場空方口數 - 三大法人空方口數
-          散戶淨部位 = 散戶多單 - 散戶空單
-          散戶多空比(%) = 散戶淨部位 / 全市場未平倉口數 × 100
-
-        優點：來自台期所官方，不依賴第三方平台（如玩股網），結構穩定。
-        資料通常於當日收盤後更新，盤中查詢若無資料會自動往前回溯最多 3 個交易日。
+        整合三大法人資料與全市場總量，計算散戶多空比。
         """
-        from datetime import datetime, timedelta
+        # 1. 獲取全市場總未平倉量 (Total Market OI)
+        total_market_oi = self._fetch_taifex_total_oi(query_date, commodity_id)
+        if total_market_oi is None:
+            # 可能是該日無行情資料
+            return None
 
-        commodity_id = 'MXF'  # 微型臺指期貨
-
-        # 逐日回溯：今天 → 昨天 → 前天（應對假日與盤中尚未更新的情況）
-        today = datetime.now()
-        dates_to_try = [
-            today.strftime('%Y/%m/%d'),
-            (today - timedelta(days=1)).strftime('%Y/%m/%d'),
-            (today - timedelta(days=2)).strftime('%Y/%m/%d'),
-            (today - timedelta(days=3)).strftime('%Y/%m/%d'),
-        ]
-
-        for query_date in dates_to_try:
-            result = self._fetch_taifex_mxf_oi(query_date, commodity_id)
-            if result is not None:
-                return result
-
-        self.last_errors['retail_long_short_ratio'] = (
-            f'台期所 {commodity_id} 三大法人未平倉資料：'
-            f'連續 {len(dates_to_try)} 個交易日均無法解析（假日或資料尚未更新）'
-        )
-        return None
-
-    def _fetch_taifex_mxf_oi(self, query_date, commodity_id):
-        """
-        向台期所查詢指定日期與商品的三大法人未平倉數據，回傳散戶多空比(%)。
-
-        台期所表格欄位順序（0-indexed）：
-          [0] 身份別  [1] 多方口數  [2] 多方契約金額(千元)
-          [3] 空方口數 [4] 空方契約金額(千元)
-          [5] 多空淨額口數 [6] 多空淨額契約金額(千元)
-
-        目標列：「合計」= 三大法人加總，「全市場」= 全市場總量。
-        """
+        # 2. 獲獲三大法人未平倉量
         url = 'https://www.taifex.com.tw/cht/3/futContractsDate'
         try:
-            post_data = {
+            params = {
                 'queryDate': query_date,
                 'commodityId': commodity_id,
             }
-            headers = {
-                **self.headers,
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'Referer': url,
-            }
-            res = requests.post(url, data=post_data, headers=headers, timeout=12)
+            res = self.session.post(url, data=params, timeout=12)
             if res.status_code != 200:
-                self.last_errors['retail_long_short_ratio'] = (
-                    f'台期所 HTTP {res.status_code} (date={query_date}, id={commodity_id})'
-                )
                 return None
 
             soup = BeautifulSoup(res.text, 'html.parser')
 
             institutional_long = None
             institutional_short = None
-            market_long = None
-            market_short = None
 
             for table in soup.find_all('table'):
                 for row in table.find_all('tr'):
@@ -476,50 +518,41 @@ class QuantSentimentScout:
                     if len(cells) < 4:
                         continue
 
-                    label = cells[0]
-
-                    # 三大法人「合計」列（多方口數=cells[1]，空方口數=cells[3]）
-                    if '合計' in label and institutional_long is None:
+                    # 檢查是否為「合計」列
+                    row_text = row.get_text(" ", strip=True)
+                    if '合計' in row_text:
+                        # 在三大法人表格中:
+                        # 身份別 | 多方口數 | 契約金額 | 空方口數 | 契約金額 | 淨額口數 ...
+                        # 合計   | index 1 | index 2 | index 3 | index 4 | index 5
                         l_val = self._extract_first_float(cells[1])
                         s_val = self._extract_first_float(cells[3]) if len(cells) > 3 else None
                         if l_val is not None and s_val is not None:
                             institutional_long = l_val
                             institutional_short = s_val
+                            break
+                if institutional_long is not None:
+                    break
 
-                    # 「全市場」列
-                    if '全市場' in label:
-                        l_val = self._extract_first_float(cells[1])
-                        s_val = self._extract_first_float(cells[3]) if len(cells) > 3 else None
-                        if l_val is not None and s_val is not None:
-                            market_long = l_val
-                            market_short = s_val
+            if institutional_long is not None and institutional_short is not None:
+                # 3. 計算散戶部位
+                # 在期貨市場，總多單 = 總空單 = 總未平倉量 (Total Market OI)
+                retail_long = total_market_oi - institutional_long
+                retail_short = total_market_oi - institutional_short
+                retail_net = retail_long - retail_short
+                
+                ratio = round(retail_net / total_market_oi * 100, 2)
+                
+                print(
+                    f'   ∟ [Taifex-TMF] 2024微台散戶多空比 ({query_date}): '
+                    f'法人淨={institutional_long-institutional_short:,.0f} '
+                    f'全市場OI={total_market_oi:,.0f} '
+                    f'散戶淨={retail_net:,.0f} '
+                    f'= {ratio:+.2f}%'
+                )
+                
+                self.last_data_dates['retail_long_short_ratio'] = query_date
+                return ratio
 
-                # 四個數值齊全，進行計算
-                if all(v is not None for v in [
-                    institutional_long, institutional_short,
-                    market_long, market_short
-                ]):
-                    retail_long = market_long - institutional_long
-                    retail_short = market_short - institutional_short
-                    retail_net = retail_long - retail_short
-                    # 全市場未平倉口數：多方口數（期貨多空口數恆相等）
-                    total_oi = market_long
-                    if total_oi <= 0:
-                        continue
-
-                    ratio = round(retail_net / total_oi * 100, 2)
-                    print(
-                        f'   ∟ [Taifex-TMF] 散戶多空比 ({query_date}): '
-                        f'散戶多={retail_long:,.0f} 空={retail_short:,.0f} '
-                        f'淨={retail_net:,.0f} / 全市場OI={total_oi:,.0f} '
-                        f'= {ratio:+.2f}%'
-                    )
-                    # 記錄成功爬取的資料所屬日期（可能是今天或往前回溯的日期）
-                    self.last_data_dates['retail_long_short_ratio'] = query_date
-                    return ratio
-
-            # 此日期查無 TMF 資料（通常是假日或盤中尚未發布）
-            print(f'   ∟ [Taifex-TMF] {query_date} 無資料，跳過')
             return None
 
         except Exception as e:
