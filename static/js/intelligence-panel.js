@@ -16,14 +16,15 @@ const IntelligencePanel = (function() {
         anue: ['anue', '鉅亨', '鉅亨網', '鉅亨網 anue'],
         yahoo: ['yahoo', 'yahoo 股市'],
         udn: ['udn', '經濟日報', '經濟日報 udn'],
-        moneydj: ['moneydj'],
-        ctee: ['ctee', '工商'],
-        tianxia: ['天下', 'tianxia'],
+        moneydj: ['moneydj', 'moneydj'],
+        ctee: ['ctee', '工商', '工商時報'],
+        tianxia: ['天下', 'tianxia', '天下雜誌'],
         caixin: ['財訊', 'caixin'],
         cmoney: ['cmoney'],
-        ettoday: ['東森', 'ettoday'],
+        ettoday: ['東森', 'ettoday', '東森新聞'],
         tvbs: ['tvbs'],
-        cna: ['中央社', 'cna']
+        cna: ['中央社', 'cna'],
+        wantgoo: ['玩股網', 'wantgoo']
     };
     const finishedReconSources = new Set();
     

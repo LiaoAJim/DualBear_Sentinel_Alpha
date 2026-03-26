@@ -6,8 +6,8 @@ from datetime import datetime
 from dotenv import load_dotenv
 
 from core.analyzer import SentimentAnalyzer
-from core.scout import PttStockScout # 修正導入路徑
-from core.anue_scout import AnueScout # 導入 鉅亨特工
+from core.ptt_scout import PttStockScout # 修正導入路徑，改用專用 PTT 爬蟲
+# AnueScout 現在由 run_news_recon 自動調度，無需在此導入
 from core.sentinel import SentinelAlpha # 導入 哨兵策略精算師 (L11)
 from news_recon_runner import run_news_recon
 from quant_recon_runner import run_quant_recon
@@ -284,7 +284,7 @@ def main():
     
     # --- ⚔️ PHASE: Wide Recon (廣域偵察) ---
     db_notifier.status("scouting")
-    db_notifier.log("📡 啟動 DualBear 廣域偵察網：對接 TWSE、Yahoo、UDN、PTT & 鉅亨...", "scout")
+    db_notifier.log("📡 啟動 DualBear 廣域偵察網：對接 TWSE、Yahoo、UDN、PTT、鉅亨 & 玩股網...", "scout")
     print("[START] DualBear Sentinel Alpha 啟動「官網級」真實偵察任務...")
     
     all_intelligence = []
@@ -309,7 +309,12 @@ def main():
         source_status = news_result.get("source_status", {})
         source_failures = news_result.get("source_failures", [])
         for source_key, status in source_status.items():
-            db_notifier.notify("source_status", {"source": source_key, "status": "success" if status.get("success") else "failed"})
+            # 只有確定有爬到資料 (count > 0) 才顯示成功 (✓)，否則顯示失敗 (✕)
+            is_really_success = status.get("success") and status.get("count", 0) > 0
+            db_notifier.notify("source_status", {
+                "source": source_key, 
+                "status": "success" if is_really_success else "failed"
+            })
         
         # 📊 來源來源分析
         sources = {}

@@ -143,6 +143,49 @@ class DataScout:
             self._set_source_status('udn', False, error=str(e), count=0)
             return []
 
+    def get_wantgoo_news(self, limit=10):
+        """偵察 玩股網 (WantGoo) 最新台股新聞"""
+        # 正確的台股分類網址
+        url = "https://www.wantgoo.com/news/category/%e5%8f%b0%e8%82%a1"
+        articles = []
+        try:
+            print(f"[爬蟲] 嘗試連接 玩股網 (WantGoo)...")
+            res = requests.get(url, headers=self.headers, timeout=15)
+            soup = BeautifulSoup(res.text, 'html.parser')
+            
+            # 使用 subagent 偵測到的選擇器
+            # 新聞列表容器: .news-list li.news-li
+            # 標題與連結: h3.news-title a.stretched-link
+            news_items = soup.select('.news-list li.news-li')
+            for item in news_items:
+                link_tag = item.select_one('h3.news-title a.stretched-link')
+                if link_tag:
+                    title = link_tag.get_text(strip=True)
+                    href = link_tag.get('href', '')
+                    full_url = href if href.startswith('http') else f"https://www.wantgoo.com{href}"
+                    
+                    # 嘗試抓取日期
+                    date_tag = item.select_one('time.news-date')
+                    date_text = date_tag.get_text(strip=True) if date_tag else '今'
+                    
+                    articles.append({
+                        'title': title,
+                        'url': full_url,
+                        'date': date_text,
+                        'category': 'news',
+                        'source': '玩股網'
+                    })
+                    if len(articles) >= limit:
+                        break
+            
+            print(f"[成功] 玩股網 獲取 {len(articles)} 條")
+            self._set_source_status('wantgoo', True, count=len(articles))
+            return articles
+        except Exception as e:
+            print(f"[錯誤] 玩股網 失敗: {e}")
+            self._set_source_status('wantgoo', False, error=str(e), count=0)
+            return []
+
     def fetch_all_news(self):
         """一鍵啟動全網域偵察計畫"""
         print("[START] 廣域偵察計畫啟動...")
@@ -152,6 +195,7 @@ class DataScout:
         all_news.extend(self.get_anue_news(8))
         all_news.extend(self.get_yahoo_news(6))
         all_news.extend(self.get_udn_news(6))
+        all_news.extend(self.get_wantgoo_news(6))
         print(f"[OK] 廣域偵察完畢：共獲取 {len(all_news)} 則跨平台情報。")
         return all_news
 
