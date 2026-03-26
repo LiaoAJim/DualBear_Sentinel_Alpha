@@ -134,7 +134,6 @@ class TestQuantSentimentScout:
         assert 'vixus' in result
         assert result['margin_maintenance_ratio'] == 145.5
         assert result['margin_maintenance_ratio_market']['listed'] is None
-        assert result['margin_maintenance_ratio_market']['otc'] is None
         assert result['margin_maintenance_ratio_market']['market'] == 145.5
         assert result['margin_maintenance_ratio_market']['method'] == 'source_aggregate'
         assert result['retail_long_short_ratio'] == 5.13
@@ -189,21 +188,19 @@ class TestQuantSentimentScout:
 
     def test_choose_margin_market_value_prefers_listed(self):
         value = self.scout._choose_margin_market_value({
-            'listed': 178.51,
-            'otc': 176.22
+            'listed': 178.51
         })
         assert value == 178.51
 
     def test_get_xq_margin_bridge_uses_listed_only(self, tmp_path):
         snapshot = tmp_path / "xq_margin_snapshot.json"
-        snapshot.write_text('{"listed": 178.51, "otc": 176.22, "market": 177.40}', encoding='utf-8')
+        snapshot.write_text('{"listed": 178.51, "market": 178.51}', encoding='utf-8')
 
         with patch.dict(os.environ, {"XQ_MARGIN_SNAPSHOT_PATH": str(snapshot)}):
             result = self.scout._get_xq_margin_bridge()
 
         assert result == 178.51
         assert self.scout.last_margin_market['listed'] == 178.51
-        assert 'otc' not in self.scout.last_margin_market or self.scout.last_margin_market['otc'] is None
 
     def test_build_margin_market_breakdown_uses_aggregate_source(self):
         self.scout._record_margin_market_values('wantgoo_margin_page', aggregate=178.51)
@@ -212,23 +209,21 @@ class TestQuantSentimentScout:
         })
 
         assert result['listed'] is None
-        assert result['otc'] is None
         assert result['market'] == 178.51
         assert result['method'] == 'source_aggregate'
 
     def test_build_margin_market_breakdown_marks_listed_priority_proxy(self):
         self.scout._record_margin_market_values(
             'pscnet_credit_playwright',
-            market_values={'listed': 178.51, 'otc': 176.22}
+            market_values={'listed': 178.51}
         )
         result = self.scout._build_margin_market_breakdown({
             'margin_maintenance_ratio': 178.51
         })
 
         assert result['listed'] == 178.51
-        assert result['otc'] == 176.22
         assert result['market'] == 178.51
-        assert result['method'] == 'proxy_listed_priority'
+        assert result['method'] == 'listed_only'
 
     @patch.object(requests, 'get')
     def test_margin_failure_returns_none(self, mock_get):

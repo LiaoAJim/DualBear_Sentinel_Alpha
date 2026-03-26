@@ -363,3 +363,51 @@
 [32mINFO[0m:     127.0.0.1:55941 - "WebSocket /ws" [accepted]
 [32mINFO[0m:     connection open
 [32mINFO[0m:     connection closed
+[32mINFO[0m:     Started server process [[36m15684[0m]
+[32mINFO[0m:     Waiting for application startup.
+[32mINFO[0m:     Application startup complete.
+[32mINFO[0m:     Uvicorn running on [1mhttp://0.0.0.0:8001[0m (Press CTRL+C to quit)
+[32mINFO[0m:     127.0.0.1:53872 - "WebSocket /ws" [accepted]
+[32mINFO[0m:     connection open
+[32mINFO[0m:     connection closed
+[32mINFO[0m:     127.0.0.1:54132 - "WebSocket /ws" [accepted]
+[32mINFO[0m:     connection open
+[32mINFO[0m:     connection closed
+[32mINFO[0m:     127.0.0.1:55285 - "WebSocket /ws" [accepted]
+[32mINFO[0m:     connection open
+[32mINFO[0m:     connection closed
+[32mINFO[0m:     127.0.0.1:56166 - "WebSocket /ws" [accepted]
+[32mINFO[0m:     connection open
+[32mINFO[0m:     connection closed
+[32mINFO[0m:     127.0.0.1:56274 - "WebSocket /ws" [accepted]
+[32mINFO[0m:     connection open
+[32mINFO[0m:     connection closed
+[32mINFO[0m:     127.0.0.1:57199 - "WebSocket /ws" [accepted]
+[32mINFO[0m:     connection open
+[32mINFO[0m:     127.0.0.1:57200 - "WebSocket /ws" [accepted]
+[32mINFO[0m:     connection open
+[32mINFO[0m:     connection closed
+[32mINFO[0m:     connection closed
+[32mINFO[0m:     127.0.0.1:57215 - "WebSocket /ws" [accepted]
+[32mINFO[0m:     connection open
+[32mINFO[0m:     connection closed
+[32mINFO[0m:     127.0.0.1:58088 - "WebSocket /ws" [accepted]
+[32mINFO[0m:     connection open
+[32mINFO[0m:     connection closed
+[32mINFO[0m:     127.0.0.1:58102 - "WebSocket /ws" [accepted]
+[32mINFO[0m:     connection open
+[32mINFO[0m:     connection closed
+[32mINFO[0m:     127.0.0.1:59541 - "WebSocket /ws" [accepted]
+[32mINFO[0m:     connection open
+[32mINFO[0m:     connection closed
+[32mINFO[0m:     127.0.0.1:59578 - "WebSocket /ws" [accepted]
+[32mINFO[0m:     connection open
+[32mINFO[0m:     connection closed
+[32mINFO[0m:     127.0.0.1:59585 - "WebSocket /ws" [accepted]
+[32mINFO[0m:     connection open
+rver process [[36m7152[0m]
+[32mINFO[0m:     Waiting for application startup.
+[32mINFO[0m:     Application startup complete.
+[31mERROR[0m:    [Errno 10048] error while attempting to bind on address ('0.0.0.0', 8001): 一次只能用一個通訊端位址 (通訊協定/網路位址/連接埠)。
+[32mINFO[0m:     Waiting for application shutdown.
+[32mINFO[0m:     Application shutdown complete.

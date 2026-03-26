@@ -87,13 +87,6 @@ class QuantSentimentScout:
             'margin_maintenance_ratio',
             [
                 ('xq_margin_bridge', self._get_xq_margin_bridge),
-                ('wantgoo_margin_page', self._get_wantgoo_margin),
-                # 券商頁目前僅保留作為研究中的靜態備援探測，
-                # 詳見 docs/quant_backup_sources.md。
-                ('pscnet_credit_page', self._get_psc_margin_snapshot),
-                ('pscnet_credit_playwright', self._get_psc_margin_playwright),
-                ('kgi_market_playwright', self._get_kgi_margin_playwright),
-                ('kgi_market_overview_page', self._get_kgi_margin_snapshot),
             ]
         )
         indicators['_status']['margin_maintenance_ratio'] = 'success' if indicators['margin_maintenance_ratio'] is not None else 'failed'
@@ -557,10 +550,21 @@ class QuantSentimentScout:
         return None
 
     def _extract_margin_from_text(self, text):
-        direct = self._extract_context_float(text, r'融資維持率', suffix='%')
-        if self._looks_like_margin_ratio(direct):
-            return direct
-
+        # 優先從"融資維持率"標籤附近提取（使用更多上下文保證精確）
+        patterns = [
+            r'融資維持率[：:\s]+(\d+(?:\.\d+)?)\s*%',  # 「融資維持率」冒號 數字
+            r'融資維持率[\s]*(\d+(?:\.\d+)?)\s*%',      # 「融資維持率」直接連數字
+            r'Maintenance\s+Ratio[：:\s]+(\d+(?:\.\d+)?)\s*%',  # 英文版本
+        ]
+        
+        for pattern in patterns:
+            match = re.search(pattern, text)
+            if match:
+                value = float(match.group(1))
+                if self._looks_like_margin_ratio(value):
+                    return value
+        
+        # 備援：如果上述都失敗，才從全文中找第一個符合範圍的數字
         candidates = [float(match) for match in re.findall(r'\d+(?:\.\d+)?', text.replace(',', ''))]
         for value in candidates:
             if self._looks_like_margin_ratio(value):
@@ -638,7 +642,7 @@ class QuantSentimentScout:
                 'method': 'proxy_listed_priority',
                 'note': '尚未取得上市 / 上櫃融資餘額，暫以上市值作為主顯示，不視為加權大盤值。'
             }
-
+                
         if listed is not None:
             return {
                 'listed': listed,

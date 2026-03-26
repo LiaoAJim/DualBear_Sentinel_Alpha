@@ -98,7 +98,8 @@ class SentinelAlpha:
         
         if quant_data:
             # (A) 大盤融資維持率
-            margin = quant_data.get('margin_maintenance_ratio')
+            margin_market = quant_data.get('margin_maintenance_ratio_market', {})
+            margin = margin_market.get('market')  # 使用處理後的整合值
             if margin:
                 if margin < profile_config["margin_low"]: 
                     adjustment += profile_config["margin_low_adj"]
