@@ -24,6 +24,7 @@ class QuantSentimentScout:
         self.last_errors = {}
         self.last_attempts = {}
         self.last_margin_market = {}
+        self.last_data_dates = {}  # 各指標的「資料所屬日期」（非採集時刻）
         self.xq_margin_codes = {
             "listed": "TSE.TW-FinanceMaintenRatio",
         }
@@ -43,6 +44,7 @@ class QuantSentimentScout:
         self.last_errors = {}
         self.last_attempts = {}
         self.last_margin_market = {}
+        self.last_data_dates = {}
         indicators = {
             'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M"),
             'margin_maintenance_ratio': None,
@@ -65,7 +67,14 @@ class QuantSentimentScout:
                 'vixus': 'failed'
             },
             '_errors': {},
-            '_attempts': {}
+            '_attempts': {},
+            # 各指標的原始資料日期（爬到的那筆資料是哪一天的）
+            '_data_dates': {
+                'vixtwn': None,
+                'vixus': None,
+                'margin_maintenance_ratio': None,
+                'retail_long_short_ratio': None,
+            }
         }
 
         indicators['vixtwn'], indicators['_sources']['vixtwn'] = self._fetch_with_fallback(
@@ -105,14 +114,16 @@ class QuantSentimentScout:
         indicators['retail_long_short_ratio'], indicators['_sources']['retail_long_short_ratio'] = self._fetch_with_fallback(
             'retail_long_short_ratio',
             [
-                ('wantgoo_retail_page', self._get_wantgoo_retail_ls),
-                # MacroMicro 目前常被 Cloudflare 擋下，先保留為探測來源。
-                ('macromicro_chart_page', self._get_macromicro_retail_ls),
+                # 主要來源：台期所官方三大法人未平倉量，自行計算散戶部位，不依賴第三方網站。
+                # 商品代碼 MXF = 微型臺指期貨（微台指）
+                ('taifex_mxf_institutional_oi', self._get_taifex_retail_ls),
             ]
         )
         indicators['_status']['retail_long_short_ratio'] = 'success' if indicators['retail_long_short_ratio'] is not None else 'failed'
         indicators['_errors'] = dict(self.last_errors)
         indicators['_attempts'] = dict(self.last_attempts)
+        # 填入各指標的資料日期（從各 fetcher 記錄的 last_data_dates 彙整）
+        indicators['_data_dates'].update(self.last_data_dates)
 
         print("[OK] 全量化指標採集完成。")
         return indicators
@@ -217,6 +228,8 @@ class QuantSentimentScout:
                     market_values={"listed": value},
                     aggregate=value
                 )
+                # XQ DDE 為即時資料，記錄今日日期
+                self.last_data_dates['margin_maintenance_ratio'] = datetime.now().strftime('%Y/%m/%d')
                 return value
 
             self.last_errors['margin_maintenance_ratio'] = (
@@ -296,12 +309,21 @@ class QuantSentimentScout:
                 if "Last 1 min AVG" in line:
                     value = self._extract_last_float(line)
                     if value is not None:
+                        # 檔名為 8 位日期（如 20260325），解析為 YYYY/MM/DD
+                        if len(file_name) == 8:
+                            self.last_data_dates['vixtwn'] = (
+                                f"{file_name[:4]}/{file_name[4:6]}/{file_name[6:]}"
+                            )
                         print(f"   ∟ [Taifex] 台灣 VIX: {value}")
                         return value
 
             for line in reversed(lines):
                 value = self._extract_last_float(line)
                 if value is not None:
+                    if len(file_name) == 8:
+                        self.last_data_dates['vixtwn'] = (
+                            f"{file_name[:4]}/{file_name[4:6]}/{file_name[6:]}"
+                        )
                     print(f"   ∟ [Taifex] 台灣 VIX(末筆): {value}")
                     return value
 
@@ -323,7 +345,9 @@ class QuantSentimentScout:
             data = res.json()
             if data['stat'] == 'OK' and 'data' in data:
                 # 取得最新的一筆數據 [日期, 指數]
+                raw_date = data['data'][0][0]  # 例: '114/03/25'（民國年）或 '2026/03/25'
                 vix_val = float(data['data'][0][1])
+                self.last_data_dates['vixtwn'] = raw_date
                 print(f"   ∟ [TWSE] 恐慌指數 (VIX): {vix_val}")
                 return vix_val
             self.last_errors['vixtwn'] = f"TWSE stat={data.get('stat', 'UNKNOWN')}"
@@ -370,39 +394,138 @@ class QuantSentimentScout:
         print("[WARN] 融資維持率未能解析，返回 None")
         return None
 
-    def _get_wantgoo_retail_ls(self):
-        """從玩股網採集小台指散戶多空比"""
-        url = "https://www.wantgoo.com/futures/retail-indicator/wtm%26"
-        try:
-            res = requests.get(url, headers=self.headers, timeout=10)
-            if res.status_code != 200:
-                self.last_errors['retail_long_short_ratio'] = f"HTTP {res.status_code}"
-                return None
-            soup = BeautifulSoup(res.text, 'html.parser')
-            
-            # 優先從表格第一列的最後一欄讀取最新散戶多空比
-            table_row = soup.select_one('table tbody tr')
-            if table_row:
-                cells = [cell.get_text(" ", strip=True) for cell in table_row.find_all(['td', 'th'])]
-                if cells:
-                    val = self._extract_first_float(cells[-1])
-                    if val is not None:
-                        print(f"   ∟ [WantGoo] 散戶多空比: {val}")
-                        return val
+    def _get_taifex_retail_ls(self):
+        """
+        從台期所「三大法人期貨未平倉量」直接計算微台指（MXF）散戶多空比。
 
-            # 備援：找標題附近的百分比
-            text = soup.get_text(" ", strip=True)
-            val = self._extract_context_float(text, r'散戶多空比', suffix='%')
-            if val is not None:
-                print(f"   ∟ [WantGoo] 散戶多空比(備援): {val}")
-                return val
-            self.last_errors['retail_long_short_ratio'] = '頁面可載入，但解析不到散戶多空比'
-        except Exception as e:
-            self.last_errors['retail_long_short_ratio'] = str(e)
-            print(f"[FAIL] 玩股網散戶多空比採集失敗: {e}")
+        計算公式：
+          散戶多單 = 全市場多方口數 - 三大法人多方口數
+          散戶空單 = 全市場空方口數 - 三大法人空方口數
+          散戶淨部位 = 散戶多單 - 散戶空單
+          散戶多空比(%) = 散戶淨部位 / 全市場未平倉口數 × 100
 
-        print("[WARN] 散戶多空比未能解析，返回 None")
+        優點：來自台期所官方，不依賴第三方平台（如玩股網），結構穩定。
+        資料通常於當日收盤後更新，盤中查詢若無資料會自動往前回溯最多 3 個交易日。
+        """
+        from datetime import datetime, timedelta
+
+        commodity_id = 'MXF'  # 微型臺指期貨
+
+        # 逐日回溯：今天 → 昨天 → 前天（應對假日與盤中尚未更新的情況）
+        today = datetime.now()
+        dates_to_try = [
+            today.strftime('%Y/%m/%d'),
+            (today - timedelta(days=1)).strftime('%Y/%m/%d'),
+            (today - timedelta(days=2)).strftime('%Y/%m/%d'),
+            (today - timedelta(days=3)).strftime('%Y/%m/%d'),
+        ]
+
+        for query_date in dates_to_try:
+            result = self._fetch_taifex_mxf_oi(query_date, commodity_id)
+            if result is not None:
+                return result
+
+        self.last_errors['retail_long_short_ratio'] = (
+            f'台期所 {commodity_id} 三大法人未平倉資料：'
+            f'連續 {len(dates_to_try)} 個交易日均無法解析（假日或資料尚未更新）'
+        )
         return None
+
+    def _fetch_taifex_mxf_oi(self, query_date, commodity_id):
+        """
+        向台期所查詢指定日期與商品的三大法人未平倉數據，回傳散戶多空比(%)。
+
+        台期所表格欄位順序（0-indexed）：
+          [0] 身份別  [1] 多方口數  [2] 多方契約金額(千元)
+          [3] 空方口數 [4] 空方契約金額(千元)
+          [5] 多空淨額口數 [6] 多空淨額契約金額(千元)
+
+        目標列：「合計」= 三大法人加總，「全市場」= 全市場總量。
+        """
+        url = 'https://www.taifex.com.tw/cht/3/futContractsDate'
+        try:
+            post_data = {
+                'queryDate': query_date,
+                'commodityId': commodity_id,
+            }
+            headers = {
+                **self.headers,
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Referer': url,
+            }
+            res = requests.post(url, data=post_data, headers=headers, timeout=12)
+            if res.status_code != 200:
+                self.last_errors['retail_long_short_ratio'] = (
+                    f'台期所 HTTP {res.status_code} (date={query_date}, id={commodity_id})'
+                )
+                return None
+
+            soup = BeautifulSoup(res.text, 'html.parser')
+
+            institutional_long = None
+            institutional_short = None
+            market_long = None
+            market_short = None
+
+            for table in soup.find_all('table'):
+                for row in table.find_all('tr'):
+                    cells = [
+                        td.get_text(' ', strip=True).replace(',', '')
+                        for td in row.find_all(['td', 'th'])
+                    ]
+                    if len(cells) < 4:
+                        continue
+
+                    label = cells[0]
+
+                    # 三大法人「合計」列（多方口數=cells[1]，空方口數=cells[3]）
+                    if '合計' in label and institutional_long is None:
+                        l_val = self._extract_first_float(cells[1])
+                        s_val = self._extract_first_float(cells[3]) if len(cells) > 3 else None
+                        if l_val is not None and s_val is not None:
+                            institutional_long = l_val
+                            institutional_short = s_val
+
+                    # 「全市場」列
+                    if '全市場' in label:
+                        l_val = self._extract_first_float(cells[1])
+                        s_val = self._extract_first_float(cells[3]) if len(cells) > 3 else None
+                        if l_val is not None and s_val is not None:
+                            market_long = l_val
+                            market_short = s_val
+
+                # 四個數值齊全，進行計算
+                if all(v is not None for v in [
+                    institutional_long, institutional_short,
+                    market_long, market_short
+                ]):
+                    retail_long = market_long - institutional_long
+                    retail_short = market_short - institutional_short
+                    retail_net = retail_long - retail_short
+                    # 全市場未平倉口數：多方口數（期貨多空口數恆相等）
+                    total_oi = market_long
+                    if total_oi <= 0:
+                        continue
+
+                    ratio = round(retail_net / total_oi * 100, 2)
+                    print(
+                        f'   ∟ [Taifex-MXF] 散戶多空比 ({query_date}): '
+                        f'散戶多={retail_long:,.0f} 空={retail_short:,.0f} '
+                        f'淨={retail_net:,.0f} / 全市場OI={total_oi:,.0f} '
+                        f'= {ratio:+.2f}%'
+                    )
+                    # 記錄成功爬取的資料所屬日期（可能是今天或往前回溯的日期）
+                    self.last_data_dates['retail_long_short_ratio'] = query_date
+                    return ratio
+
+            # 此日期查無 MXF 資料（通常是假日或盤中尚未發布）
+            print(f'   ∟ [Taifex-MXF] {query_date} 無資料，跳過')
+            return None
+
+        except Exception as e:
+            self.last_errors['retail_long_short_ratio'] = f'台期所 MXF 解析失敗: {str(e)}'
+            print(f'[FAIL] 台期所散戶多空比採集失敗: {e}')
+            return None
 
     def _get_psc_margin_snapshot(self):
         """統一證券信用交易頁的備援探測，目前僅做靜態頁與關鍵字探測"""
@@ -544,28 +667,8 @@ class QuantSentimentScout:
             self.last_errors[error_key] = f"{source_label} {str(e)}"
         return None
 
-    def _get_macromicro_retail_ls(self):
-        """Macromicro 圖表備援探測，若遭 Cloudflare 阻擋則回報清楚原因"""
-        url = "https://www.macromicro.me/charts/110457/tw-tmf-long-to-short-ratio-of-individual-player"
-        try:
-            res = requests.get(url, headers=self.headers, timeout=10)
-            if res.status_code != 200:
-                self.last_errors['retail_long_short_ratio'] = f"Macromicro HTTP {res.status_code}"
-                return None
-
-            text = BeautifulSoup(res.text, 'html.parser').get_text(" ", strip=True)
-            value = self._extract_context_float(text, r'散戶.*多空比')
-            if value is not None:
-                print(f"   ∟ [Macromicro] 散戶多空比: {value}")
-                return value
-
-            if 'Just a moment' in res.text or 'cf-challenge' in res.text.lower():
-                self.last_errors['retail_long_short_ratio'] = 'Macromicro 遭 Cloudflare 驗證阻擋'
-            else:
-                self.last_errors['retail_long_short_ratio'] = 'Macromicro 可載入，但解析不到散戶多空比'
-        except Exception as e:
-            self.last_errors['retail_long_short_ratio'] = str(e)
-        return None
+    # _get_wantgoo_retail_ls 與 _get_macromicro_retail_ls 已移除。
+    # 改用 _get_taifex_retail_ls (台期所官方) 直接計算，不再依賴第三方平台。
 
     def _get_us_vix(self):
         """從現有 VIXScout 取得美國 VIX"""
@@ -574,6 +677,8 @@ class QuantSentimentScout:
             result = scout.fetch()
             if result.get("status") == "success" and result.get("value") is not None:
                 vix_val = float(result["value"])
+                # CBOE VIX 為即時資料，記錄今日日期
+                self.last_data_dates['vixus'] = datetime.now().strftime('%Y/%m/%d')
                 print(f"   ∟ [CBOE] 美國 VIX: {vix_val}")
                 return vix_val
             self.last_errors['vixus'] = result.get('message', '未知錯誤')

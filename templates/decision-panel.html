@@ -36,13 +36,13 @@
                 <h4>📡 情報偵察網與真理來源</h4>
                 <table class="manual-table">
                     <tr><th>來源</th><th>偵察屬性</th><th>戰略價值</th></tr>
-                    <tr><td>台期所 / TWSE</td><td>官方數據</td><td>台灣 VIX 與市場風險溫度</td></tr>
-                    <tr><td>WantGoo</td><td>量化指標</td><td>融資維持率與散戶多空比</td></tr>
-                    <tr><td>CBOE / Yahoo Finance</td><td>國際波動率</td><td>美國 VIX 全局風險參考</td></tr>
-                    <tr><td>PTT / Yahoo / UDN / 鉅亨</td><td>新聞輿情</td><td>提供 AI 情緒判讀素材</td></tr>
+                    <tr><td>台期所 / TWSE</td><td>官方數據指標</td><td>台灣 VIX (恐慌指數) 與 散戶多空比 (MXF)</td></tr>
+                    <tr><td>XQ DDE (Excel)</td><td>即時快照</td><td>大盤融資維持率 (即時 DDE 刷新)</td></tr>
+                    <tr><td>CBOE / Yahoo</td><td>國際波動率</td><td>美國 VIX 全局風險參考</td></tr>
+                    <tr><td>PTT / 鉅亨 / 經濟</td><td>新聞輿情</td><td>提供 AI 各類情緒判讀素材</td></tr>
                 </table>
                 <p style="margin-top: 10px; font-size: 12px; line-height: 1.7; color: #d8b4fe;">
-                    目前 Step 3 正式量化來源以台期所台灣 VIX、XQ快照 融資 / 散戶、CBOE 美國 VIX 為主。
+                    目前 Step 3 核心量化指標已脫離第三方網站，直連台期所官方 API 與 XQ 即時數值，確保決策真理的高保真度。
                 </p>
             </section>
 
@@ -93,18 +93,22 @@
             <div class="quant-item">
                 <span class="quant-label">融維</span>
                 <span id="quant-margin" class="quant-value">--</span>
+                <span id="quant-margin-date" class="quant-date"></span>
             </div>
             <div class="quant-item">
                 <span class="quant-label">散戶</span>
                 <span id="quant-retail" class="quant-value">--</span>
+                <span id="quant-retail-date" class="quant-date"></span>
             </div>
             <div class="quant-item">
                 <span class="quant-label">台VIX</span>
                 <span id="quant-vix-tw" class="quant-value">--</span>
+                <span id="quant-vix-tw-date" class="quant-date"></span>
             </div>
             <div class="quant-item">
                 <span class="quant-label">美VIX</span>
                 <span id="quant-vix-us" class="quant-value">--</span>
+                <span id="quant-vix-us-date" class="quant-date"></span>
             </div>
         </div>
     </div>

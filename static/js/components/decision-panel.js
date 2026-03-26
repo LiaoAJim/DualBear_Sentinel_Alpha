@@ -13,6 +13,10 @@ const DecisionPanel = (function() {
     let quantRetailEl = null;
     let quantVixTwEl = null;
     let quantVixUsEl = null;
+    let quantMarginDateEl = null;
+    let quantRetailDateEl = null;
+    let quantVixTwDateEl = null;
+    let quantVixUsDateEl = null;
     let reportGuidanceEl = null;
     let lineReportPreviewEl = null;
     let decisionLogEl = null;
@@ -54,6 +58,10 @@ const DecisionPanel = (function() {
         quantRetailEl = document.getElementById('quant-retail');
         quantVixTwEl = document.getElementById('quant-vix-tw');
         quantVixUsEl = document.getElementById('quant-vix-us');
+        quantMarginDateEl = document.getElementById('quant-margin-date');
+        quantRetailDateEl = document.getElementById('quant-retail-date');
+        quantVixTwDateEl = document.getElementById('quant-vix-tw-date');
+        quantVixUsDateEl = document.getElementById('quant-vix-us-date');
         reportGuidanceEl = document.getElementById('report-guidance');
         lineReportPreviewEl = document.getElementById('line-report-preview');
         decisionLogEl = document.getElementById('decision-log');
@@ -238,6 +246,10 @@ const DecisionPanel = (function() {
 
         updateDecision(currentDecision);
         updateQuant(currentQuant);
+        // 清空所有日期標籤
+        [quantMarginDateEl, quantRetailDateEl, quantVixTwDateEl, quantVixUsDateEl].forEach(el => {
+            if (el) el.textContent = '';
+        });
         renderGuidance(DEFAULTS.guidance);
         renderLinePreview();
         console.log('[DecisionPanel] Reset to defaults');
@@ -290,6 +302,20 @@ const DecisionPanel = (function() {
         console.log('[DecisionPanel] Updated decision:', currentDecision.action, currentDecision.target_position);
     }
 
+    function formatDataDate(dateStr) {
+        // 將 'YYYY/MM/DD' 或 '114/MM/DD'（民國年）格式化為 MM/DD 短格式
+        if (!dateStr) return '';
+        const parts = dateStr.split('/');
+        if (parts.length >= 3) return `${parts[1]}/${parts[2]}`;
+        return dateStr;
+    }
+
+    function renderQuantDate(el, dateStr) {
+        if (!el) return;
+        const label = formatDataDate(dateStr);
+        el.textContent = label ? label : '';
+    }
+
     function updateQuant(data) {
         if (!data) return;
 
@@ -311,6 +337,14 @@ const DecisionPanel = (function() {
 
         renderMetric(quantVixTwEl, data.vixtwn, '', getVixColor);
         renderMetric(quantVixUsEl, data.vixus, '', getVixColor);
+
+        // 更新各指標的資料所屬日期（來自 _data_dates）
+        if (data._data_dates) {
+            renderQuantDate(quantMarginDateEl, data._data_dates.margin_maintenance_ratio);
+            renderQuantDate(quantRetailDateEl, data._data_dates.retail_long_short_ratio);
+            renderQuantDate(quantVixTwDateEl, data._data_dates.vixtwn);
+            renderQuantDate(quantVixUsDateEl, data._data_dates.vixus);
+        }
 
         renderLinePreview();
         console.log('[DecisionPanel] Updated quant data');

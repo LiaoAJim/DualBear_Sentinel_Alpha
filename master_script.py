@@ -497,7 +497,12 @@ def main():
         }
 
     display_quant_data = build_display_quant_data(quant_data)
-    db_notifier.notify("quant_data", display_quant_data)
+    # 附帶各指標的資料所屬日期（來自 quant_scout 的 _data_dates）
+    push_quant = {
+        **display_quant_data,
+        "_data_dates": (quant_data or {}).get("_data_dates", {})
+    }
+    db_notifier.notify("quant_data", push_quant)
 
     if decision_failures:
         db_notifier.log(f"⚠️ Step 3 決策資料不完整：{'、'.join(decision_failures)}，將以可用參數繼續精算。", "warning")
