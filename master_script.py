@@ -66,8 +66,10 @@ def build_display_quant_data(quant_data=None):
 
     def normalize(field):
         value = quant_data.get(field) if isinstance(quant_data, dict) else None
+        # 有實際值就返回
         if value is not None:
             return value
+        # 沒有值：失敗顯示「失敗」，其他返回 None
         if status.get(field) == "failed":
             return "失敗"
         return None

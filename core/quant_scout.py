@@ -113,14 +113,17 @@ class QuantSentimentScout:
         目前程式無法直接讀取 `=XQFAP|Quote!` 公式，
         因此改走本機快照 JSON 橋接。
         目前依使用者規則，Step 3 只看上市融維。
+        注：檔案不存在時返回 None，不自動建立預設值。
         """
         snapshot_path = os.getenv(
             "XQ_MARGIN_SNAPSHOT_PATH",
             os.path.join("logs", "xq_margin_snapshot.json")
         )
+        
+        # 檔案不存在，返回 None（不建立預設值）
         if not os.path.exists(snapshot_path):
             self.last_errors['margin_maintenance_ratio'] = (
-                "XQ bridge 未提供快照檔；可建立 logs/xq_margin_snapshot.json 並填入 listed。"
+                "XQ 快照檔案不存在，無法取得融維數值。"
             )
             return None
 
