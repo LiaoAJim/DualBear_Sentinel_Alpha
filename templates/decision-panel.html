@@ -33,6 +33,21 @@
             border-top: 1px solid rgba(157, 80, 187, 0.15);
         ">
             <section class="manual-section">
+                <h4>📈 戰略建議與倉位邏輯</h4>
+                <p>哨兵系統採用「逆向思維」策略模型：當新聞情緒過熱時減碼，極度恐慌時強勢介入。</p>
+                <table class="manual-table" style="margin-top: 10px;">
+                    <tr><th>AI 情緒分數</th><th>市場狀態</th><th>建議操作</th><th>基礎倉位</th></tr>
+                    <tr style="color: #ff4d4d;"><td>0.7+</td><td>極度燥熱</td><td>獲利減碼</td><td>25%</td></tr>
+                    <tr style="color: #00ff88;"><td>0.2 至 0.7</td><td>氣氛偏多</td><td>順勢續抱</td><td>65%</td></tr>
+                    <tr style="color: #60a5fa;"><td>-0.2 至 0.2</td><td>中性震盪</td><td>持平觀望</td><td>50%</td></tr>
+                    <tr style="color: #fbbf24;"><td>-0.7 至 -0.2</td><td>氣氛悲觀</td><td>試探佈局</td><td>75%</td></tr>
+                    <tr style="color: #fff; font-weight: bold;"><td>-0.7 以下</td><td>極度恐慌</td><td>強勢介入</td><td>95%</td></tr>
+                </table>
+                <p style="margin-top: 10px; font-size: 11px; color: var(--text-dim);">
+                    * 最終顯示之「建議倉位」會依據 <b>融資維持率、微台散戶比、VIX 恐慌值</b> 進行二次精算修正。
+                </p>
+            </section>
+            <section class="manual-section">
                 <h4>📡 情報偵察網與真理來源</h4>
                 <table class="manual-table">
                     <tr><th>來源</th><th>偵察屬性</th><th>戰略價值</th></tr>

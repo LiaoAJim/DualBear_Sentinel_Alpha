@@ -115,8 +115,8 @@ class QuantSentimentScout:
             'retail_long_short_ratio',
             [
                 # 主要來源：台期所官方三大法人未平倉量，自行計算散戶部位，不依賴第三方網站。
-                # 商品代碼 MXF = 微型臺指期貨（微台指）
-                ('taifex_mxf_institutional_oi', self._get_taifex_retail_ls),
+                # 商品代碼 TMF = 微型臺指期貨（微台指）
+                ('taifex_tmf_institutional_oi', self._get_taifex_retail_ls),
             ]
         )
         indicators['_status']['retail_long_short_ratio'] = 'success' if indicators['retail_long_short_ratio'] is not None else 'failed'
@@ -509,7 +509,7 @@ class QuantSentimentScout:
 
                     ratio = round(retail_net / total_oi * 100, 2)
                     print(
-                        f'   ∟ [Taifex-MXF] 散戶多空比 ({query_date}): '
+                        f'   ∟ [Taifex-TMF] 散戶多空比 ({query_date}): '
                         f'散戶多={retail_long:,.0f} 空={retail_short:,.0f} '
                         f'淨={retail_net:,.0f} / 全市場OI={total_oi:,.0f} '
                         f'= {ratio:+.2f}%'
@@ -518,12 +518,12 @@ class QuantSentimentScout:
                     self.last_data_dates['retail_long_short_ratio'] = query_date
                     return ratio
 
-            # 此日期查無 MXF 資料（通常是假日或盤中尚未發布）
-            print(f'   ∟ [Taifex-MXF] {query_date} 無資料，跳過')
+            # 此日期查無 TMF 資料（通常是假日或盤中尚未發布）
+            print(f'   ∟ [Taifex-TMF] {query_date} 無資料，跳過')
             return None
 
         except Exception as e:
-            self.last_errors['retail_long_short_ratio'] = f'台期所 MXF 解析失敗: {str(e)}'
+            self.last_errors['retail_long_short_ratio'] = f'台期所 TMF 解析失敗: {str(e)}'
             print(f'[FAIL] 台期所散戶多空比採集失敗: {e}')
             return None
 
