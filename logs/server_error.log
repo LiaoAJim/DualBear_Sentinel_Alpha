@@ -353,3 +353,13 @@
 [32mINFO[0m:     connection closed
 [32mINFO[0m:     127.0.0.1:54369 - "WebSocket /ws" [accepted]
 [32mINFO[0m:     connection open
+[32mINFO[0m:     connection closed
+[32mINFO[0m:     127.0.0.1:55452 - "WebSocket /ws" [accepted]
+[32mINFO[0m:     connection open
+[32mINFO[0m:     connection closed
+[32mINFO[0m:     127.0.0.1:55918 - "WebSocket /ws" [accepted]
+[32mINFO[0m:     connection open
+[32mINFO[0m:     connection closed
+[32mINFO[0m:     127.0.0.1:55941 - "WebSocket /ws" [accepted]
+[32mINFO[0m:     connection open
+[32mINFO[0m:     connection closed
