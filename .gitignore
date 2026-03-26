@@ -14,4 +14,5 @@ venv/
 
 # 📔 IDE 設定
 .vscode/
-.idea/
+.idea/"nul" 
+".sentinel_deps" 
